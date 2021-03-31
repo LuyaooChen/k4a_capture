@@ -3,6 +3,7 @@
 #include <QThread>
 #include <QImage>
 #include <k4a/k4a.hpp>
+#include <eigen3/Eigen/Core>
 
 class k4aDevice: public QThread
 {
@@ -14,16 +15,18 @@ public:
     void stopCamera();
     bool open();
     void close();
-    bool is_opened();
-    bool is_camRunning();
-    uint32_t getDeviceId();
+    bool is_opened() const;
+    bool is_camRunning() const;
+    uint32_t getDeviceId() const;
+    const Eigen::Matrix3f &getColorIntrinsics() const;
     void setSyncMode(k4a_wired_sync_mode_t m);
+    void setExposureTime(int exp, k4a_color_control_mode_t mode=K4A_COLOR_CONTROL_MODE_MANUAL);
+    void setWhiteBalance(int32_t value,k4a_color_control_mode_t mode=K4A_COLOR_CONTROL_MODE_MANUAL);
 
 private:
     void run() override;
 
-    uint32_t device_index;
-
+    uint32_t deviceIndex;
     k4a::device device;
     k4a_device_configuration_t config;
     k4a::transformation transformation;
@@ -31,9 +34,12 @@ private:
     k4a::image depthImage;
     k4a::image colorImage;
     k4a::image transformed_depth_image;
+    Eigen::Matrix3f colorIntrinsics;
+    Eigen::Matrix4f colorExtrinsics;
 
     bool _is_opened;
     bool _is_camRunning;
+    bool _is_camPause;
 
     static constexpr int K4A_COLOR_RESOLUTIONS[7][2]= {{0,0}, {1280,720},{1920,1080},{2560,1440},{2048,1536},{3840,2160},{4096,3072}};
 
@@ -41,7 +47,5 @@ signals:
     void sig_SendColorImg(QImage);
     void sig_SendDepthImg(QImage);
 };
-
-static QVector<QRgb> colorTable;
 
 #endif // K4ADEVICE_H
