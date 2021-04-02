@@ -9,11 +9,9 @@ class depthColorizer
 {
 public:
     depthColorizer(k4a_depth_mode_t depthMode);
-//    const QVector<QRgb> &getColorTable();
     void colorize(const uchar *depth_image_data, QImage& target);
 
 private:
-//    QVector<QRgb> colorTable;
     uint16_t d_min;
     uint16_t d_max;
 

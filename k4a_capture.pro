@@ -29,12 +29,14 @@ SOURCES += \
         main.cpp \
         mainwindow.cpp \
     k4adevice.cpp \
-    depthcolorizer.cpp
+    depthcolorizer.cpp \
+    devmanager.cpp
 
 HEADERS += \
         mainwindow.h \
     k4adevice.h \
-    depthcolorizer.h
+    depthcolorizer.h \
+    devmanager.h
 
 FORMS += \
         mainwindow.ui

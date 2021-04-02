@@ -1,12 +1,11 @@
 #include "k4adevice.h"
 #include <QMatrix>
-#include "depthcolorizer.h"
 #include <QDebug>
 //#include <iostream>
 
 constexpr int k4aDevice::K4A_COLOR_RESOLUTIONS[7][2];
 
-k4aDevice::k4aDevice(uint32_t index) : deviceIndex(index), _is_opened(false), _is_camRunning(false), _is_camPause(false)
+k4aDevice::k4aDevice(uint32_t index) : deviceIndex(index), _is_opened(false), _is_camRunning(false)
 {
     // 如果需要gui来配置config，以下需要重写以另外配置
     config = K4A_DEVICE_CONFIG_INIT_DISABLE_ALL;
@@ -17,6 +16,8 @@ k4aDevice::k4aDevice(uint32_t index) : deviceIndex(index), _is_opened(false), _i
 //    config.wired_sync_mode = K4A_WIRED_SYNC_MODE_STANDALONE;
 //    config.subordinate_delay_off_master_usec = 160;
     config.synchronized_images_only = true;
+
+    rotateMat.rotate(90);
 }
 
 k4aDevice::~k4aDevice()
@@ -64,17 +65,27 @@ void k4aDevice::startCamera()
             0.0f, intri.param.fy, intri.param.cy,
             0.0f, 0.0f, 1.0f;
 
-    device.set_color_control(K4A_COLOR_CONTROL_POWERLINE_FREQUENCY,K4A_COLOR_CONTROL_MODE_MANUAL,1);
-    start();
+    width = K4A_COLOR_RESOLUTIONS[config.color_resolution][0];
+    height = K4A_COLOR_RESOLUTIONS[config.color_resolution][1];
+    transformed_depth_image = k4a::image::create(   K4A_IMAGE_FORMAT_DEPTH16,
+                                                    width,
+                                                    height,
+                                                    width * (int)sizeof(uint16_t));
+
+    device.set_color_control(K4A_COLOR_CONTROL_POWERLINE_FREQUENCY,K4A_COLOR_CONTROL_MODE_MANUAL,1);    // 电源50Hz
+    colorizer = new depthColorizer(config.depth_mode);
+
+    //    start();
     _is_camRunning=true;
 }
 
 void k4aDevice::stopCamera()
 {
     _is_camRunning=false;
-    msleep(35);
+//    msleep(35); // 保证capture结束了
     device.stop_cameras();
     transformation.destroy();
+    delete colorizer;
 }
 
 uint32_t k4aDevice::getDeviceId() const
@@ -133,42 +144,34 @@ void k4aDevice::setSyncMode(k4a_wired_sync_mode_t m)
 
 void k4aDevice::run()
 {
-    const int width = K4A_COLOR_RESOLUTIONS[config.color_resolution][0];
-    const int height = K4A_COLOR_RESOLUTIONS[config.color_resolution][1];
-    transformed_depth_image = k4a::image::create(   K4A_IMAGE_FORMAT_DEPTH16,
-                                                    width,
-                                                    height,
-                                                    width * (int)sizeof(uint16_t));
-    QMatrix rotateMat;
-    rotateMat.rotate(90);
-    depthColorizer colorizer(config.depth_mode);
-    while(_is_camRunning)
+    if(_is_camRunning)
     {
-        // SUB模式的设备会因为MASTER的停止而停止？还是说即使master不进行get_capture也实际在运行？
-        if(_is_camPause&&(config.wired_sync_mode==K4A_WIRED_SYNC_MODE_MASTER||config.wired_sync_mode==K4A_WIRED_SYNC_MODE_STANDALONE))
-            msleep(35);
-        else
+        try
         {
-            if(device.get_capture(&capture))
-            {
-                depthImage = capture.get_depth_image();
-                colorImage = capture.get_color_image();
-                transformation.depth_image_to_color_camera(depthImage, &transformed_depth_image);
-                const uchar * color_image_data = colorImage.get_buffer();
-                const uchar * depth_image_data = transformed_depth_image.get_buffer();
-
-                QImage QColor_image(color_image_data,width,height,QImage::Format_RGBA8888);
-                QColor_image=QColor_image.rgbSwapped().transformed(rotateMat);
-                emit sig_SendColorImg(QColor_image);
-
-                // 这里需要rgba8888，alpha没用，只是QRgb占4个字节，对齐处理起来方便。
-                QImage QDepth_image(width,height,QImage::Format_RGBA8888);
-                colorizer.colorize(depth_image_data,QDepth_image);
-                QDepth_image = QDepth_image.transformed(rotateMat);
-                emit sig_SendDepthImg(QDepth_image);
-            }
+            device.get_capture(&capture);
+        }
+        catch(k4a::error &e)
+        {
+            qDebug()<<"dev"+QString::number(deviceIndex)+" fail to get capture!";
+            return;
         }
 
-    }
+        depthImage = capture.get_depth_image();
+        colorImage = capture.get_color_image();
+        transformation.depth_image_to_color_camera(depthImage, &transformed_depth_image);
 
+        /*为显示做处理*/
+        const uchar * color_image_data = colorImage.get_buffer();
+        const uchar * depth_image_data = transformed_depth_image.get_buffer();
+
+        QImage QColor_image(color_image_data,width,height,QImage::Format_RGBA8888);
+        QColor_image=QColor_image.rgbSwapped().transformed(rotateMat);
+        emit sig_SendColorImg(QColor_image);
+
+        // 这里需要rgba8888，alpha没用，只是QRgb占4个字节，对齐处理起来方便。
+        QImage QDepth_image(width,height,QImage::Format_RGBA8888);
+        colorizer->colorize(depth_image_data,QDepth_image);
+        QDepth_image = QDepth_image.transformed(rotateMat);
+        emit sig_SendDepthImg(QDepth_image);
+    }
 }

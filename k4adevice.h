@@ -4,8 +4,9 @@
 #include <QImage>
 #include <k4a/k4a.hpp>
 #include <eigen3/Eigen/Core>
+#include "depthcolorizer.h"
 
-class k4aDevice: public QThread
+class k4aDevice : public QThread
 {
     Q_OBJECT
 public:
@@ -36,10 +37,14 @@ private:
     k4a::image transformed_depth_image;
     Eigen::Matrix3f colorIntrinsics;
     Eigen::Matrix4f colorExtrinsics;
+    uint16_t width;
+    uint16_t height;
+
+    QMatrix rotateMat;
+    depthColorizer *colorizer;
 
     bool _is_opened;
     bool _is_camRunning;
-    bool _is_camPause;
 
     static constexpr int K4A_COLOR_RESOLUTIONS[7][2]= {{0,0}, {1280,720},{1920,1080},{2560,1440},{2048,1536},{3840,2160},{4096,3072}};
 

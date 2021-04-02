@@ -3,9 +3,14 @@
 
 #include <QMainWindow>
 #include <QButtonGroup>
+#include <QVector>
+#include <QLabel>
+#include <QPushButton>
+#include <QSpinBox>
+#include <QSlider>
+#include <QToolButton>
 #include "k4adevice.h"
-
-#define N_CAM 4
+#include "devmanager.h"
 
 namespace Ui {
 class MainWindow;
@@ -21,37 +26,29 @@ public:
 
 private:
     Ui::MainWindow *ui;
-    k4aDevice* k4aDevices[N_CAM];
 
-    QButtonGroup* syncModeButtons[N_CAM];
+    QButtonGroup *syncModeButtons[N_CAM];
+    devManager *devs;
+    QVector<QLabel*> colorLabels;
+    QVector<QLabel*> depthLabels;
+    QVector<QLabel*> whitebalanceLabels;
+    QVector<QPushButton*> devOpenButtons;
+    QVector<QPushButton*> camStartButtons;
+    QVector<QSpinBox*> exposureSpinBoxes;
+    QVector<QSlider*> whitebalanceSliders;
+    QVector<QToolButton*> exposureAutoButtons;
+    QVector<QToolButton*> whitebalanceAutoButtons;
 
 private slots:
     void slotGetColorImg(QImage);
     void slotGetDepthImg(QImage);
-    void on_devOpenButton_0_clicked();
-    void on_camStartButton_0_clicked();
-    void on_devOpenButton_1_clicked();
-    void on_camStartButton_1_clicked();
-    void on_devOpenButton_2_clicked();
-    void on_camStartButton_2_clicked();
-    void on_devOpenButton_3_clicked();
-    void on_camStartButton_3_clicked();
-    void on_exposureSpinBox_0_valueChanged(int arg1);
-    void on_whitebalanceSlider_0_sliderMoved(int position);
-    void on_exposureSpinBox_1_valueChanged(int arg1);
-    void on_whitebalanceSlider_1_sliderMoved(int position);
-    void on_exposureSpinBox_2_valueChanged(int arg1);
-    void on_whitebalanceSlider_2_sliderMoved(int position);
-    void on_exposureSpinBox_3_valueChanged(int arg1);
-    void on_whitebalanceSlider_3_sliderMoved(int position);
-    void on_exposureAutoButton_0_clicked();
-    void on_whitebalanceAutoButton_0_clicked();
-    void on_exposureAutoButton_1_clicked();
-    void on_whitebalanceAutoButton_1_clicked();
-    void on_exposureAutoButton_2_clicked();
-    void on_whitebalanceAutoButton_2_clicked();
-    void on_exposureAutoButton_3_clicked();
-    void on_whitebalanceAutoButton_3_clicked();
+
+    void devOpenButtons_clicked();
+    void camStartButtons_clicked();
+    void exposureSpinBoxes_valueChanged(int arg1);
+    void whitebalanceSliders_sliderMoved(int position);
+    void exposureAutoButtons_clicked();
+    void whitebalanceAutoButtons_clicked();
 };
 
 #endif // MAINWINDOW_H
