@@ -9,6 +9,7 @@
 #include <QSpinBox>
 #include <QSlider>
 #include <QToolButton>
+#include <open3d/visualization/visualizer/Visualizer.h>
 #include "k4adevice.h"
 #include "devmanager.h"
 
@@ -28,7 +29,6 @@ private:
     Ui::MainWindow *ui;
 
     QButtonGroup *syncModeButtons[N_CAM];
-    devManager *devs;
     QVector<QLabel*> colorLabels;
     QVector<QLabel*> depthLabels;
     QVector<QLabel*> whitebalanceLabels;
@@ -39,9 +39,13 @@ private:
     QVector<QToolButton*> exposureAutoButtons;
     QVector<QToolButton*> whitebalanceAutoButtons;
 
+    devManager *devs;
+    std::shared_ptr<open3d::visualization::Visualizer> pc_viewer;
+
 private slots:
     void slotGetColorImg(QImage);
     void slotGetDepthImg(QImage);
+    void slotPointCloudReady(bool);
 
     void devOpenButtons_clicked();
     void camStartButtons_clicked();
@@ -49,6 +53,7 @@ private slots:
     void whitebalanceSliders_sliderMoved(int position);
     void exposureAutoButtons_clicked();
     void whitebalanceAutoButtons_clicked();
+    void on_visualModeAction_triggered();
 };
 
 #endif // MAINWINDOW_H

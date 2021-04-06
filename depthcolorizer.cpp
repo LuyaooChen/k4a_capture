@@ -61,7 +61,7 @@ QRgb depthColorizer::intensity2RGB(uint16_t intensity)
     hue *= range;
     // We want blue to be close and red to be far, so we need to reflect the
     // hue across the middle of the range.
-    hue = range - hue;
+//    hue = range - hue;
     float fRed = 0.f;
     float fGreen = 0.f;
     float fBlue = 0.f;

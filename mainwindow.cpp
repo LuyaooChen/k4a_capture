@@ -4,7 +4,6 @@
 #include <QPixmap>
 #include <QString>
 #include <QValidator>
-
 #include <QDebug>
 
 #define DEFAULT_EXPOSURE_EXP -8
@@ -17,12 +16,14 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
 
     devs = new devManager();
+    devs->setVisualMode(VISUALIZATION_MODE_2D);
     for(int i=0;i<N_CAM;i++)
     {
         devs->k4aDevices[i]->setObjectName(QString::number(i));   //简单用数字命名设备对象
         connect(devs->k4aDevices[i],SIGNAL(sig_SendColorImg(QImage)),this,SLOT(slotGetColorImg(QImage)));
         connect(devs->k4aDevices[i],SIGNAL(sig_SendDepthImg(QImage)),this,SLOT(slotGetDepthImg(QImage)));
     }
+    connect(devs,SIGNAL(sig_SendPointCloudReady(bool)),this,SLOT(slotPointCloudReady(bool)));
 
     {
     // 同步模式设置按钮组
@@ -111,26 +112,17 @@ MainWindow::MainWindow(QWidget *parent) :
     }
 
     {
-    // 颜色控制设置
     /* 最大值最小值默认值enable等直接在ui界面中设置了，这里就省的写了。
-    ui->exposureSpinBox_0->setMinimum(-11);
-    ui->exposureSpinBox_0->setMaximum(1);
-    ui->exposureSpinBox_0->setValue(DEFAULT_EXPOSURE_EXP);
-    ui->exposureSpinBox_0->setEnabled(false);
-
-    ui->whitebalanceSlider_0->setMaximum(7000);   //超出[2566,12500]这个范围会抛出异常
-    ui->whitebalanceSlider_0->setMinimum(2600);
-    ui->whitebalanceSlider_0->setValue(DEFAULT_WHITEBALANCE);
-    ui->whitebalanceLabel_0->setText(QString::number(DEFAULT_WHITEBALANCE));
-    ui->whitebalanceSlider_0->setEnabled(false);
+        // ...
     */
     }
-
     devs->begin();
 }
 
 MainWindow::~MainWindow()
 {
+    for(int i=0;i<N_CAM;i++)
+        delete syncModeButtons[i];
     delete devs;
     delete ui;
 }
@@ -160,6 +152,7 @@ void MainWindow::devOpenButtons_clicked()
         whitebalanceSliders[index]->setEnabled(false);
         exposureAutoButtons[index]->setEnabled(false);
         whitebalanceAutoButtons[index]->setEnabled(false);
+        camStartButtons[index]->setEnabled(false);
         for(int i=0;i<3;i++)
             syncModeButtons[index]->button(i)->setEnabled(true);
     }
@@ -181,6 +174,7 @@ void MainWindow::devOpenButtons_clicked()
         whitebalanceSliders[index]->setEnabled(true);
         exposureAutoButtons[index]->setEnabled(true);
         whitebalanceAutoButtons[index]->setEnabled(true);
+        camStartButtons[index]->setEnabled(true);
         for(int i=0;i<3;i++)
             syncModeButtons[index]->button(i)->setEnabled(false);
     }
@@ -249,5 +243,42 @@ void MainWindow::whitebalanceAutoButtons_clicked()
     }
 }
 
+void MainWindow::on_visualModeAction_triggered()
+{
+    if(devs->getVisualMode()==VISUALIZATION_MODE_2D)
+    {
+        pc_viewer = std::shared_ptr<open3d::visualization::Visualizer>(new open3d::visualization::Visualizer());
+        pc_viewer->CreateVisualizerWindow("Cloud",1280,720);
+        devs->setVisualMode(VISUALIZATION_MODE_3D);
+        qDebug()<<"3d on";
+//        pc_viewer->PrintVisualizerHelp();
+    }
+    else
+    {
+        devs->setVisualMode(VISUALIZATION_MODE_2D);
+        pc_viewer->DestroyVisualizerWindow();
+        devs->_is_viewerOpened=false;
+        qDebug()<<"2d on";
+    }
+}
 
-
+void MainWindow::slotPointCloudReady(bool flag)
+{
+    if(flag)
+    {
+        devs->mutex.lock();
+        if(!devs->_is_viewerOpened)
+        {
+            for(int i=0;i<N_CAM;i++)
+                pc_viewer->AddGeometry(devs->pointcloud[i]);
+            devs->_is_viewerOpened=true;
+        }
+        else
+        {
+            pc_viewer->UpdateGeometry();
+            pc_viewer->PollEvents();
+            pc_viewer->UpdateRender();
+        }
+        devs->mutex.unlock();
+    }
+}

@@ -76,6 +76,9 @@
         </property>
        </widget>
        <widget class="QPushButton" name="camStartButton_3">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
         <property name="geometry">
          <rect>
           <x>680</x>
@@ -157,7 +160,7 @@
          <rect>
           <x>702</x>
           <y>240</y>
-          <width>81</width>
+          <width>89</width>
           <height>28</height>
          </rect>
         </property>
@@ -303,6 +306,9 @@
         </property>
        </widget>
        <widget class="QPushButton" name="camStartButton_2">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
         <property name="geometry">
          <rect>
           <x>680</x>
@@ -384,7 +390,7 @@
          <rect>
           <x>702</x>
           <y>240</y>
-          <width>81</width>
+          <width>89</width>
           <height>28</height>
          </rect>
         </property>
@@ -530,6 +536,9 @@
         </property>
        </widget>
        <widget class="QPushButton" name="camStartButton_1">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
         <property name="geometry">
          <rect>
           <x>680</x>
@@ -611,7 +620,7 @@
          <rect>
           <x>700</x>
           <y>250</y>
-          <width>81</width>
+          <width>89</width>
           <height>28</height>
          </rect>
         </property>
@@ -717,6 +726,9 @@
         </property>
        </widget>
        <widget class="QPushButton" name="camStartButton_0">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
         <property name="geometry">
          <rect>
           <x>680</x>
@@ -860,7 +872,7 @@
          <rect>
           <x>700</x>
           <y>250</y>
-          <width>81</width>
+          <width>89</width>
           <height>28</height>
          </rect>
         </property>
@@ -951,14 +963,14 @@
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
-   <addaction name="action"/>
+   <addaction name="visualModeAction"/>
   </widget>
-  <action name="action">
+  <action name="visualModeAction">
    <property name="text">
-    <string>todo</string>
+    <string>2D/3D</string>
    </property>
    <property name="toolTip">
-    <string>todo</string>
+    <string>Switch visualization mode.</string>
    </property>
   </action>
  </widget>
