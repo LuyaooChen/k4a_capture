@@ -964,6 +964,7 @@
     <bool>false</bool>
    </attribute>
    <addaction name="visualModeAction"/>
+   <addaction name="refineRegistrationAction"/>
   </widget>
   <action name="visualModeAction">
    <property name="text">
@@ -971,6 +972,14 @@
    </property>
    <property name="toolTip">
     <string>Switch visualization mode.</string>
+   </property>
+  </action>
+  <action name="refineRegistrationAction">
+   <property name="text">
+    <string>Refine Registration</string>
+   </property>
+   <property name="toolTip">
+    <string>使用Colored_ICP优化配准</string>
    </property>
   </action>
  </widget>

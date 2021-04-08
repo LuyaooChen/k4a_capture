@@ -256,6 +256,7 @@ void MainWindow::on_visualModeAction_triggered()
     else
     {
         devs->setVisualMode(VISUALIZATION_MODE_2D);
+        pc_viewer->ClearGeometries();
         pc_viewer->DestroyVisualizerWindow();
         devs->_is_viewerOpened=false;
         qDebug()<<"2d on";
@@ -281,4 +282,9 @@ void MainWindow::slotPointCloudReady(bool flag)
         }
         devs->mutex.unlock();
     }
+}
+
+void MainWindow::on_refineRegistrationAction_triggered()
+{
+    devs->refineRegistration_on=true;
 }

@@ -32,7 +32,9 @@ public:
     void setSyncMode(k4a_wired_sync_mode_t m);
     void setExposureTime(int exp, k4a_color_control_mode_t mode=K4A_COLOR_CONTROL_MODE_MANUAL);
     void setWhiteBalance(int32_t value,k4a_color_control_mode_t mode=K4A_COLOR_CONTROL_MODE_MANUAL);
-    void loadColorExtrinsicMatrix(QString &path);
+    void loadColorExtrinsicMatrix(QString path);
+    void setColorExtrinsicMatrix(Eigen::Matrix4d mat);
+    const Eigen::Matrix4d &getColorExtrinsicMatrix() const;
     void enableVisualization(bool flag);
     std::shared_ptr<open3d::geometry::PointCloud> getPointCloud() const;
     void setVisualMode(visualization_mode_t mode);
@@ -49,7 +51,7 @@ private:
     k4a::image colorImage;
     k4a::image transformed_depth_image;
     Eigen::Matrix3f colorIntrinsicMatrix;
-    Eigen::Matrix4f colorExtrinsicMatrix;
+    Eigen::Matrix4d colorExtrinsicMatrix;
     uint16_t width;
     uint16_t height;
     std::shared_ptr<open3d::geometry::Image> o3d_color;

@@ -1,8 +1,9 @@
 #include "devmanager.h"
 #include <QDebug>
 #include <open3d/Open3D.h>
+#include <open3d/pipelines/registration/ColoredICP.h>
 
-devManager::devManager() : _is_running(false), _is_viewerOpened(false)
+devManager::devManager() : _is_running(false), _is_viewerOpened(false), refineRegistration_on(false)
 {
     for(int i=0;i<N_CAM;i++)
     {
@@ -32,9 +33,31 @@ void devManager::stop()
     _is_running=false;
 }
 
-void devManager::colored_icp()
+Eigen::Matrix4d devManager::colored_icp(std::shared_ptr<open3d::geometry::PointCloud> src,
+                             std::shared_ptr<open3d::geometry::PointCloud> tar)
 {
-//    open3d::geometry::PointCloud p;
+    open3d::geometry::PointCloud src_t= *src;
+    open3d::geometry::PointCloud tar_t= *tar;
+    open3d::pipelines::registration::RegistrationResult result;
+    std::vector<float> voxel_radius{0.04,0.02,0.01};
+    std::vector<int> max_iter{50,30,14};
+    for(int i=0;i<max_iter.size();++i)
+    {
+        float radius=voxel_radius[i];
+        int iter=max_iter[i];
+        qDebug()<<"downsampling...";
+        std::shared_ptr<open3d::geometry::PointCloud> src_down=src_t.VoxelDownSample(radius);
+        std::shared_ptr<open3d::geometry::PointCloud> tar_down=tar_t.VoxelDownSample(radius);
+        qDebug()<<"estimating normals...";
+        src_down->EstimateNormals(open3d::geometry::KDTreeSearchParamHybrid(radius*2,30));
+        tar_down->EstimateNormals(open3d::geometry::KDTreeSearchParamHybrid(radius*2,30));
+        qDebug()<<"colored ICP ...";
+        result=open3d::pipelines::registration::RegistrationColoredICP(*src_down,*tar_down,
+                                                                       radius,Eigen::Matrix4d::Identity(),
+                                                                       open3d::pipelines::registration::TransformationEstimationForColoredICP(),
+                                                                       open3d::pipelines::registration::ICPConvergenceCriteria(1e-6,1e-6,iter));
+    }
+    return result.transformation_;
 }
 
 void devManager::setVisualMode(visualization_mode_t mode)
@@ -99,6 +122,33 @@ void devManager::run()
                     mutex.lock();
                     for(int i=0;i<N_CAM;i++)
                         *(pointcloud[i]) = *(k4aDevices[i]->getPointCloud());
+                    // Colored_ICP 优化配准
+                    if(refineRegistration_on)
+                    {
+                        refineRegistration_on=false;
+                        Eigen::Matrix4d transformation_current;
+                        Eigen::Matrix4d transformation_result;
+                        std::shared_ptr<open3d::geometry::PointCloud> pc_sum(new open3d::geometry::PointCloud());
+                        int i=0;
+                        for(i=0;i<N_CAM;i++)
+                        {
+                            if(k4aDevices[i]->is_camRunning())
+                            {
+                                qDebug()<<"正在处理点云: "<<QString::number(i);
+                                if(pc_sum->IsEmpty())
+                                {
+                                    *pc_sum=*(pointcloud[i]);
+                                    transformation_current=k4aDevices[i]->getColorExtrinsicMatrix();
+                                    continue;
+                                }
+                                transformation_result=colored_icp(pointcloud[i], pc_sum);
+                                pointcloud[i]->Transform(transformation_result);
+                                k4aDevices[i]->setColorExtrinsicMatrix(transformation_result*transformation_current);
+                                *pc_sum += *(pointcloud[i]);
+                            }
+                        }
+                    }
+
                     mutex.unlock();
                     emit sig_SendPointCloudReady(true);
                 }

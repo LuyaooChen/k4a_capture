@@ -25,6 +25,7 @@ k4aDevice::k4aDevice(uint32_t index) :
     config.synchronized_images_only = true;
 
     rotateMat.rotate(90);
+    colorExtrinsicMatrix=Eigen::Matrix4d::Identity();
     o3d_pc = std::shared_ptr<open3d::geometry::PointCloud>(new open3d::geometry::PointCloud()); //即使没打开相机也可能先打开viewer，所以要一开始就初始化
 }
 
@@ -65,6 +66,7 @@ bool k4aDevice::is_camRunning() const
 void k4aDevice::startCamera()
 {
     device.start_cameras(&config);
+    loadColorExtrinsicMatrix("/home/cly/workspace/k4a_capture/doc/calib/");
     device.set_color_control(K4A_COLOR_CONTROL_POWERLINE_FREQUENCY,K4A_COLOR_CONTROL_MODE_MANUAL,1);    // 电源50Hz
 
     k4a::calibration calibration = device.get_calibration(config.depth_mode, config.color_resolution);
@@ -159,26 +161,36 @@ void k4aDevice::setSyncMode(k4a_wired_sync_mode_t m)
     if(m==K4A_WIRED_SYNC_MODE_SUBORDINATE)
         // 设置depth_delay_off_color_usec怎么样？
         config.subordinate_delay_off_master_usec = 160*deviceIndex;
+    else config.subordinate_delay_off_master_usec = 0;
 }
 
-void k4aDevice::loadColorExtrinsicMatrix(QString &path)
+void k4aDevice::loadColorExtrinsicMatrix(QString path)
 {
+    path = path + QString(device.get_serialnum().c_str()) + ".yaml";
     cv::FileStorage freader;
-    freader.open(path.toStdString(), cv::FileStorage::READ);
-    cv::Mat transformMat;
-    freader["transformMat"] >> transformMat;
-    cv::cv2eigen(transformMat,colorExtrinsicMatrix);
+    if(freader.open(path.toStdString(), cv::FileStorage::READ))
+    {
+        cv::Mat transformMat;
+        freader["transformMat"] >> transformMat;
+        cv::cv2eigen(transformMat,colorExtrinsicMatrix);
+    }
+    else qDebug()<<"load extrinsic failed! "<<path;
+}
+
+void k4aDevice::setColorExtrinsicMatrix(Eigen::Matrix4d mat)
+{
+    colorExtrinsicMatrix=mat;
+}
+
+const Eigen::Matrix4d &k4aDevice::getColorExtrinsicMatrix() const
+{
+    return colorExtrinsicMatrix;
 }
 
 void k4aDevice::enableVisualization(bool flag)
 {
     _is_visual=flag;
 }
-
-//std::shared_ptr<const open3d::geometry::PointCloud> k4aDevice::getO3dPointCloud() const
-//{
-//    return std::shared_ptr<const open3d::geometry::PointCloud>(&o3d_pc);
-//}
 
 std::shared_ptr<open3d::geometry::PointCloud> k4aDevice::getPointCloud() const
 {
@@ -237,7 +249,7 @@ void k4aDevice::run()
                         open3d::geometry::RGBDImage::CreateFromColorAndDepth(*o3d_color,
                                                                               *o3d_depth,
                                                                               1000,
-                                                                              5.0,
+                                                                              3.0,
                                                                               false);
                 open3d::camera::PinholeCameraIntrinsic o3d_Intrinsic(width,
                                                                      height,
@@ -246,6 +258,7 @@ void k4aDevice::run()
                                                                      colorIntrinsicMatrix(0,2),
                                                                      colorIntrinsicMatrix(1,2));
                 o3d_pc = open3d::geometry::PointCloud::CreateFromRGBDImage(*o3d_rgbd,o3d_Intrinsic);
+                o3d_pc->Transform(colorExtrinsicMatrix);
 //                o3d_pc = open3d::geometry::PointCloud::CreateFromDepthImage(o3d_depth,o3d_Intrinsic);
 //                open3d::io::WritePointCloud("test.ply",*o3d_pc);
 //                qDebug()<<"3d mode running...";

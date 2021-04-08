@@ -54,6 +54,7 @@ private slots:
     void exposureAutoButtons_clicked();
     void whitebalanceAutoButtons_clicked();
     void on_visualModeAction_triggered();
+    void on_refineRegistrationAction_triggered();
 };
 
 #endif // MAINWINDOW_H
