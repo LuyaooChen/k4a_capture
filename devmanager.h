@@ -22,6 +22,7 @@ public:
     QMutex mutex;
     bool _is_viewerOpened;
     bool refineRegistration_on;
+    bool saveAllImgs_on;
     std::shared_ptr<open3d::geometry::PointCloud> pointcloud[N_CAM];
 
 private:

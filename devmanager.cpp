@@ -3,7 +3,10 @@
 #include <open3d/Open3D.h>
 #include <open3d/pipelines/registration/ColoredICP.h>
 
-devManager::devManager() : _is_running(false), _is_viewerOpened(false), refineRegistration_on(false)
+devManager::devManager() : _is_running(false),
+    _is_viewerOpened(false),
+    refineRegistration_on(false),
+    saveAllImgs_on(false)
 {
     for(int i=0;i<N_CAM;i++)
     {
@@ -151,6 +154,13 @@ void devManager::run()
 
                     mutex.unlock();
                     emit sig_SendPointCloudReady(true);
+                }
+
+                if(saveAllImgs_on)
+                {
+                    saveAllImgs_on=false;
+                    for(int i=0;i<N_CAM;i++)
+                        k4aDevices[i]->saveImg();
                 }
 
                 break;

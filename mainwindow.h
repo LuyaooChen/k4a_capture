@@ -55,6 +55,8 @@ private slots:
     void whitebalanceAutoButtons_clicked();
     void on_visualModeAction_triggered();
     void on_refineRegistrationAction_triggered();
+    void on_saveImgsAction_triggered();
+    void on_startAllAction_triggered();
 };
 
 #endif // MAINWINDOW_H

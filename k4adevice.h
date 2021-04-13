@@ -38,6 +38,7 @@ public:
     void enableVisualization(bool flag);
     std::shared_ptr<open3d::geometry::PointCloud> getPointCloud() const;
     void setVisualMode(visualization_mode_t mode);
+    void saveImg() const;
 
 private:
     void run() override;

@@ -1,5 +1,7 @@
 #include "k4adevice.h"
 #include <QMatrix>
+#include <QDir>
+#include <QDateTime>
 #include <QDebug>
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/eigen.hpp>
@@ -175,6 +177,7 @@ void k4aDevice::loadColorExtrinsicMatrix(QString path)
         cv::cv2eigen(transformMat,colorExtrinsicMatrix);
     }
     else qDebug()<<"load extrinsic failed! "<<path;
+    freader.release();
 }
 
 void k4aDevice::setColorExtrinsicMatrix(Eigen::Matrix4d mat)
@@ -202,6 +205,27 @@ void k4aDevice::setVisualMode(visualization_mode_t mode)
     visualization_mode=mode;
 }
 
+void k4aDevice::saveImg() const
+{
+    if(!colorImage.is_valid()) return;
+    QString path =QString("imgs/")+device.get_serialnum().c_str()+"/";
+    QDir qdir;    //当前目录
+    if(!qdir.exists(path))
+    {
+        qdir.mkpath(path);
+        qDebug()<<"path doesn't exist. mkpath:"+path;
+    }
+    QString time=QDateTime::currentDateTime().toString("yyyy_MM_dd-hh:mm:ss");
+    const uchar* color_image_data = colorImage.get_buffer();
+//    cv::Mat tmp(height,width,CV_8UC4,color_image_data);
+//    cv::cvtColor(tmp,tmp,cv::COLOR_BGRA2BGR);
+//    cv::imwrite((path+time+".jpg").toStdString(),tmp);    //crashed! maybe because to libjpeg
+    QImage QColor_image(color_image_data,width,height,QImage::Format_RGBA8888);
+    QColor_image=QColor_image.rgbSwapped();
+    QColor_image.save(path+time+".png","PNG",9);
+    qDebug()<<"save color img to "+qdir.absolutePath()+"/"+path+time+".png";
+}
+
 void k4aDevice::run()
 {
     if(_is_camRunning)
@@ -223,8 +247,8 @@ void k4aDevice::run()
         if(_is_visual)
         {
             /*为显示做处理*/
-            uchar * color_image_data = colorImage.get_buffer();
-            uchar * depth_image_data = transformed_depth_image.get_buffer();
+            uchar* color_image_data = colorImage.get_buffer();
+            uchar* depth_image_data = transformed_depth_image.get_buffer();
             if(visualization_mode==VISUALIZATION_MODE_2D)
             {
                 QImage QColor_image(color_image_data,width,height,QImage::Format_RGBA8888);

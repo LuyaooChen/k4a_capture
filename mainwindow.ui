@@ -965,6 +965,8 @@
    </attribute>
    <addaction name="visualModeAction"/>
    <addaction name="refineRegistrationAction"/>
+   <addaction name="saveImgsAction"/>
+   <addaction name="startAllAction"/>
   </widget>
   <action name="visualModeAction">
    <property name="text">
@@ -980,6 +982,19 @@
    </property>
    <property name="toolTip">
     <string>使用Colored_ICP优化配准</string>
+   </property>
+  </action>
+  <action name="saveImgsAction">
+   <property name="text">
+    <string>Save Images</string>
+   </property>
+  </action>
+  <action name="startAllAction">
+   <property name="text">
+    <string>Start All</string>
+   </property>
+   <property name="toolTip">
+    <string>start all cameras connected</string>
    </property>
   </action>
  </widget>

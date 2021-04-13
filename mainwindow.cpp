@@ -288,3 +288,78 @@ void MainWindow::on_refineRegistrationAction_triggered()
 {
     devs->refineRegistration_on=true;
 }
+
+void MainWindow::on_saveImgsAction_triggered()
+{
+    devs->saveAllImgs_on=true;
+}
+
+void MainWindow::on_startAllAction_triggered()
+{
+    uint32_t N_devs = k4a::device::get_installed_count();
+    if(ui->startAllAction->text()=="Start All")
+    {
+        int master_index=-1;
+        for(int index=0;index<N_devs;index++)
+        {
+            if(!devs->k4aDevices[index]->is_opened())
+            {
+                k4a_wired_sync_mode_t sync_mode = (k4a_wired_sync_mode_t)(syncModeButtons[index]->checkedId());
+                devs->k4aDevices[index]->setSyncMode(sync_mode);
+                if(!devs->k4aDevices[index]->open())
+                {
+                    QMessageBox::information(NULL,"ERROR!","Fail to open device "+QString::number(index));
+                    return;
+                }
+                devs->k4aDevices[index]->setExposureTime(exposureSpinBoxes[index]->value());
+                devs->k4aDevices[index]->setWhiteBalance(whitebalanceSliders[index]->value());
+
+                /* ui settings */
+                devOpenButtons[index]->setText("Close Device");
+                exposureSpinBoxes[index]->setEnabled(true);
+                whitebalanceSliders[index]->setEnabled(true);
+                exposureAutoButtons[index]->setEnabled(true);
+                whitebalanceAutoButtons[index]->setEnabled(true);
+                camStartButtons[index]->setEnabled(true);
+                for(int i=0;i<3;i++)
+                    syncModeButtons[index]->button(i)->setEnabled(false);
+
+                // start camera.
+                if(sync_mode!=K4A_WIRED_SYNC_MODE_MASTER)
+                {
+                    devs->k4aDevices[index]->startCamera();
+                    camStartButtons[index]->setText("Stop");
+                }
+                else master_index=index;
+            }
+        }
+        // MASTER设备最后启动
+        if(master_index!=-1)
+        {
+            devs->k4aDevices[master_index]->startCamera();
+            camStartButtons[master_index]->setText("Stop");
+        }
+        ui->startAllAction->setText("Close All");
+    }
+    else
+    {
+        for(int index=0;index<N_devs;index++)
+        {
+            if(devs->k4aDevices[index]->is_opened())
+            {
+                devs->k4aDevices[index]->close();
+
+                devOpenButtons[index]->setText("Open Device");
+                camStartButtons[index]->setText("Start");
+                exposureSpinBoxes[index]->setEnabled(false);
+                whitebalanceSliders[index]->setEnabled(false);
+                exposureAutoButtons[index]->setEnabled(false);
+                whitebalanceAutoButtons[index]->setEnabled(false);
+                camStartButtons[index]->setEnabled(false);
+                for(int i=0;i<3;i++)
+                    syncModeButtons[index]->button(i)->setEnabled(true);
+            }
+        }
+        ui->startAllAction->setText("Start All");
+    }
+}
