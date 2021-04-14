@@ -46,6 +46,7 @@ private slots:
     void slotGetColorImg(QImage);
     void slotGetDepthImg(QImage);
     void slotPointCloudReady(bool);
+    void slotFPSUpdate(float);
 
     void devOpenButtons_clicked();
     void camStartButtons_clicked();

@@ -1,5 +1,6 @@
 #include "devmanager.h"
 #include <QDebug>
+#include <QTime>
 #include <open3d/Open3D.h>
 #include <open3d/pipelines/registration/ColoredICP.h>
 
@@ -89,6 +90,8 @@ visualization_mode_t devManager::getVisualMode() const
 
 void devManager::run()
 {
+    QTime time;
+    time.start();
     while(_is_running)
     {
         bool is_valid=false;
@@ -166,6 +169,7 @@ void devManager::run()
                 break;
             }
             msleep(1);  // 稍微睡眠一下避免一直在无意义循环
-        }
-    }
+        }   // while(1)
+        emit sig_FPS(time.restart());
+    }   // while(_is_running)
 }

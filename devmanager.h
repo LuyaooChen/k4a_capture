@@ -33,6 +33,7 @@ private:
 
 signals:
     void sig_SendPointCloudReady(bool);
+    void sig_FPS(float);
 
 };
 

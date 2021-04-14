@@ -24,6 +24,7 @@ MainWindow::MainWindow(QWidget *parent) :
         connect(devs->k4aDevices[i],SIGNAL(sig_SendDepthImg(QImage)),this,SLOT(slotGetDepthImg(QImage)));
     }
     connect(devs,SIGNAL(sig_SendPointCloudReady(bool)),this,SLOT(slotPointCloudReady(bool)));
+    connect(devs,SIGNAL(sig_FPS(float)),this,SLOT(slotFPSUpdate(float)));
 
     {
     // 同步模式设置按钮组
@@ -362,4 +363,9 @@ void MainWindow::on_startAllAction_triggered()
         }
         ui->startAllAction->setText("Start All");
     }
+}
+
+void MainWindow::slotFPSUpdate(float fps)
+{
+    ui->statusBar->showMessage(QString("FPS:")+QString::number(double(fps),'f',1));
 }
