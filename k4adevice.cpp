@@ -3,7 +3,6 @@
 #include <QDir>
 #include <QDateTime>
 #include <QDebug>
-#include <opencv2/opencv.hpp>
 #include <opencv2/core/eigen.hpp>
 #include <open3d/Open3D.h>
 
@@ -14,6 +13,7 @@ k4aDevice::k4aDevice(uint32_t index) :
     _is_opened(false),
     _is_camRunning(false),
     _is_visual(true),
+    enableBgMatting(true),
     visualization_mode(VISUALIZATION_MODE_2D)
 {
     // 如果需要gui来配置config，以下需要重写以另外配置
@@ -163,7 +163,7 @@ void k4aDevice::setSyncMode(k4a_wired_sync_mode_t m)
     if(m==K4A_WIRED_SYNC_MODE_SUBORDINATE)
         // 设置depth_delay_off_color_usec怎么样？
         config.subordinate_delay_off_master_usec = 160*deviceIndex;
-    else config.subordinate_delay_off_master_usec = 0;
+    else config.subordinate_delay_off_master_usec = 0;  // 否则会抛出异常
 }
 
 void k4aDevice::loadColorExtrinsicMatrix(QString path)
@@ -226,6 +226,25 @@ void k4aDevice::saveImg() const
     qDebug()<<"save color img to "+qdir.absolutePath()+"/"+path+time+".png";
 }
 
+cv::Mat k4aDevice::getColorImg()
+{
+    if(!colorImage.is_valid()) return cv::Mat();
+    cv::Mat ret(height,width,CV_8UC4,colorImage.get_buffer());
+    cv::cvtColor(ret,ret,cv::COLOR_BGRA2BGR);
+    return ret;
+}
+
+// 将BgMatting对象和设备相关联
+void k4aDevice::applyBgMatting(BgMatting* bgm)
+{
+    this->bgm = bgm;
+}
+
+void k4aDevice::setBackground(cv::Mat bgImg)
+{
+    backgroundImg=bgImg.clone();
+}
+
 void k4aDevice::run()
 {
     if(_is_camRunning)
@@ -253,13 +272,22 @@ void k4aDevice::run()
             {
                 QImage QColor_image(color_image_data,width,height,QImage::Format_RGBA8888);
                 QColor_image=QColor_image.rgbSwapped().transformed(rotateMat);
-                emit sig_SendColorImg(QColor_image);
+                Q_EMIT sig_SendColorImg(QColor_image);
 
                 // 这里需要rgba8888，alpha没用，只是QRgb占4个字节，对齐处理起来方便。
                 QImage QDepth_image(width,height,QImage::Format_RGBA8888);
                 colorizer->colorize(depth_image_data,QDepth_image);
                 QDepth_image = QDepth_image.transformed(rotateMat);
-                emit sig_SendDepthImg(QDepth_image);
+                Q_EMIT sig_SendDepthImg(QDepth_image);
+
+                if(enableBgMatting && bgm->is_valid() && !backgroundImg.empty())
+                {
+                    cv::Mat color_tmp(height,width,CV_8UC4,color_image_data);
+                    cv::cvtColor(color_tmp, color_tmp, cv::COLOR_BGRA2RGB);
+                    bgMask = bgm->forward(color_tmp, backgroundImg);
+                    QImage QMask_image(bgMask.data,width,height,QImage::Format_Grayscale8);
+                    Q_EMIT sig_SendMaskImg(QMask_image.transformed(rotateMat));
+                }
             }
             else    // 3D
             {

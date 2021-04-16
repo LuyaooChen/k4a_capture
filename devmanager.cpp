@@ -7,11 +7,14 @@
 devManager::devManager() : _is_running(false),
     _is_viewerOpened(false),
     refineRegistration_on(false),
-    saveAllImgs_on(false)
+    saveAllImgs_on(false),
+    setBG_on(false),
+    bgm("cuda")
 {
     for(int i=0;i<N_CAM;i++)
     {
         k4aDevices[i] = new k4aDevice(i);
+        k4aDevices[i]->applyBgMatting(&bgm);
         pointcloud[i] = std::shared_ptr<open3d::geometry::PointCloud>(new open3d::geometry::PointCloud());
     }
 }
@@ -88,6 +91,11 @@ visualization_mode_t devManager::getVisualMode() const
     return visualization_mode;
 }
 
+void devManager::loadBGMModel(const std::string &path)
+{
+    bgm.load(path);
+}
+
 void devManager::run()
 {
     QTime time;
@@ -122,7 +130,7 @@ void devManager::run()
             // 如果所有相机都完成了,break，开始下一次采集
             if(is_allFinished)
             {
-                /** 对所有图像共同的处理写在这 **/
+                /** 对所有图像共同的处理写在这,以避免线程同步问题 **/
                 if(visualization_mode==VISUALIZATION_MODE_3D)
                 {
                     mutex.lock();
@@ -156,7 +164,7 @@ void devManager::run()
                     }
 
                     mutex.unlock();
-                    emit sig_SendPointCloudReady(true);
+                    Q_EMIT sig_SendPointCloudReady(true);
                 }
 
                 if(saveAllImgs_on)
@@ -166,10 +174,18 @@ void devManager::run()
                         k4aDevices[i]->saveImg();
                 }
 
+                if(setBG_on)
+                {
+                    setBG_on=false;
+                    for(int i=0;i<N_CAM;i++)
+                        if(k4aDevices[i]->is_camRunning())
+                            k4aDevices[i]->setBackground(k4aDevices[i]->getColorImg());
+                }
+
                 break;
             }
             msleep(1);  // 稍微睡眠一下避免一直在无意义循环
         }   // while(1)
-        emit sig_FPS(time.restart());
+        Q_EMIT sig_FPS(1000/(float)time.restart());
     }   // while(_is_running)
 }

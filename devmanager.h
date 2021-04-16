@@ -18,11 +18,13 @@ public:
     void stop();
     void setVisualMode(visualization_mode_t mode);
     visualization_mode_t getVisualMode() const;
+    void loadBGMModel(const std::string& path);
 
     QMutex mutex;
     bool _is_viewerOpened;
     bool refineRegistration_on;
     bool saveAllImgs_on;
+    bool setBG_on;
     std::shared_ptr<open3d::geometry::PointCloud> pointcloud[N_CAM];
 
 private:
@@ -30,8 +32,9 @@ private:
     bool _is_running;
     Eigen::Matrix4d colored_icp(std::shared_ptr<open3d::geometry::PointCloud> src, std::shared_ptr<open3d::geometry::PointCloud> tar);
     visualization_mode_t visualization_mode;
+    BgMatting bgm;
 
-signals:
+Q_SIGNALS:
     void sig_SendPointCloudReady(bool);
     void sig_FPS(float);
 

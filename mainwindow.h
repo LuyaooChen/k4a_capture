@@ -31,6 +31,7 @@ private:
     QButtonGroup *syncModeButtons[N_CAM];
     QVector<QLabel*> colorLabels;
     QVector<QLabel*> depthLabels;
+    QVector<QLabel*> maskLabels;
     QVector<QLabel*> whitebalanceLabels;
     QVector<QPushButton*> devOpenButtons;
     QVector<QPushButton*> camStartButtons;
@@ -42,9 +43,10 @@ private:
     devManager *devs;
     std::shared_ptr<open3d::visualization::Visualizer> pc_viewer;
 
-private slots:
+private Q_SLOT:
     void slotGetColorImg(QImage);
     void slotGetDepthImg(QImage);
+    void slotGetMaskImg(QImage);
     void slotPointCloudReady(bool);
     void slotFPSUpdate(float);
 
@@ -58,6 +60,7 @@ private slots:
     void on_refineRegistrationAction_triggered();
     void on_saveImgsAction_triggered();
     void on_startAllAction_triggered();
+    void on_setBGaction_triggered();
 };
 
 #endif // MAINWINDOW_H

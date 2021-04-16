@@ -17,14 +17,16 @@ MainWindow::MainWindow(QWidget *parent) :
 
     devs = new devManager();
     devs->setVisualMode(VISUALIZATION_MODE_2D);
+    devs->loadBGMModel("/home/cly/workspace/BackgroundMattingV2/weights/torchscript_mobilenetv2_fp16.pth");
     for(int i=0;i<N_CAM;i++)
     {
         devs->k4aDevices[i]->setObjectName(QString::number(i));   //简单用数字命名设备对象
-        connect(devs->k4aDevices[i],SIGNAL(sig_SendColorImg(QImage)),this,SLOT(slotGetColorImg(QImage)));
-        connect(devs->k4aDevices[i],SIGNAL(sig_SendDepthImg(QImage)),this,SLOT(slotGetDepthImg(QImage)));
+        connect(devs->k4aDevices[i],&k4aDevice::sig_SendColorImg,this,&MainWindow::slotGetColorImg);
+        connect(devs->k4aDevices[i],&k4aDevice::sig_SendDepthImg,this,&MainWindow::slotGetDepthImg);
+        connect(devs->k4aDevices[i],&k4aDevice::sig_SendMaskImg, this,&MainWindow::slotGetMaskImg);
     }
-    connect(devs,SIGNAL(sig_SendPointCloudReady(bool)),this,SLOT(slotPointCloudReady(bool)));
-    connect(devs,SIGNAL(sig_FPS(float)),this,SLOT(slotFPSUpdate(float)));
+    connect(devs,&devManager::sig_SendPointCloudReady,this,&MainWindow::slotPointCloudReady);
+    connect(devs,&devManager::sig_FPS,this,&MainWindow::slotFPSUpdate);
 
     {
     // 同步模式设置按钮组
@@ -65,6 +67,11 @@ MainWindow::MainWindow(QWidget *parent) :
     depthLabels.append(ui->depthLabel_2);
     depthLabels.append(ui->depthLabel_3);
 
+    maskLabels.append(ui->maskLabel_0);
+    maskLabels.append(ui->maskLabel_1);
+    maskLabels.append(ui->maskLabel_2);
+    maskLabels.append(ui->maskLabel_3);
+
     whitebalanceLabels.append(ui->whitebalanceLabel_0);
     whitebalanceLabels.append(ui->whitebalanceLabel_1);
     whitebalanceLabels.append(ui->whitebalanceLabel_2);
@@ -104,13 +111,19 @@ MainWindow::MainWindow(QWidget *parent) :
     for(int i=0;i<N_CAM;i++)
     {
         // 相同功能的按钮连接到同一个槽
-        connect(devOpenButtons[i],SIGNAL(clicked(bool)),this,SLOT(devOpenButtons_clicked()));
-        connect(camStartButtons[i],SIGNAL(clicked(bool)),this,SLOT(camStartButtons_clicked()));
-        connect(exposureSpinBoxes[i],SIGNAL(valueChanged(int)),this,SLOT(exposureSpinBoxes_valueChanged(int)));
-        connect(whitebalanceSliders[i],SIGNAL(sliderMoved(int)),this,SLOT(whitebalanceSliders_sliderMoved(int)));
-        connect(exposureAutoButtons[i],SIGNAL(clicked(bool)),this,SLOT(exposureAutoButtons_clicked()));
-        connect(whitebalanceAutoButtons[i],SIGNAL(clicked(bool)),this,SLOT(whitebalanceAutoButtons_clicked()));
+        connect(devOpenButtons[i],&QPushButton::clicked,this,&MainWindow::devOpenButtons_clicked);
+        connect(camStartButtons[i], &QPushButton::clicked, this, &MainWindow::camStartButtons_clicked);
+        connect(exposureSpinBoxes[i], static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged), this, &MainWindow::exposureSpinBoxes_valueChanged);
+        connect(whitebalanceSliders[i],&QSlider::sliderMoved,this,&MainWindow::whitebalanceSliders_sliderMoved);
+        connect(exposureAutoButtons[i],&QToolButton::clicked,this,&MainWindow::exposureAutoButtons_clicked);
+        connect(whitebalanceAutoButtons[i],&QToolButton::clicked,this,&MainWindow::whitebalanceAutoButtons_clicked);
     }
+
+    connect(ui->visualModeAction, &QAction::triggered, this, &MainWindow::on_visualModeAction_triggered);
+    connect(ui->refineRegistrationAction, &QAction::triggered, this, &MainWindow::on_refineRegistrationAction_triggered);
+    connect(ui->saveImgsAction, &QAction::triggered, this, &MainWindow::on_saveImgsAction_triggered);
+    connect(ui->startAllAction, &QAction::triggered, this, &MainWindow::on_startAllAction_triggered);
+    connect(ui->setBGaction, &QAction::triggered, this, &MainWindow::on_setBGaction_triggered);
 
     {
     /* 最大值最小值默认值enable等直接在ui界面中设置了，这里就省的写了。
@@ -138,6 +151,12 @@ void MainWindow::slotGetDepthImg(QImage img)
 {
     int index=sender()->objectName().toInt();
     depthLabels[index]->setPixmap(QPixmap::fromImage(img.scaled(depthLabels[index]->size(),Qt::KeepAspectRatio)));
+}
+
+void MainWindow::slotGetMaskImg(QImage img)
+{
+    int index=sender()->objectName().toInt();
+    maskLabels[index]->setPixmap(QPixmap::fromImage(img.scaled(maskLabels[index]->size(),Qt::KeepAspectRatio)));
 }
 
 void MainWindow::devOpenButtons_clicked()
@@ -368,4 +387,9 @@ void MainWindow::on_startAllAction_triggered()
 void MainWindow::slotFPSUpdate(float fps)
 {
     ui->statusBar->showMessage(QString("FPS:")+QString::number(double(fps),'f',1));
+}
+
+void MainWindow::on_setBGaction_triggered()
+{
+    devs->setBG_on=true;
 }

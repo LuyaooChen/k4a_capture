@@ -1,5 +1,6 @@
 *.user
 build/
+.vscode/
 # Prerequisites
 *.d
 

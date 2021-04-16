@@ -5,6 +5,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
 project(k4a_capture)
 
+ADD_DEFINITIONS(-DQT_NO_KEYWORDS)
 set(CMAKE_AUTOMOC ON)
 #set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
@@ -89,9 +90,12 @@ endif ()
 find_package(Qt5 COMPONENTS Widgets REQUIRED)
 find_package(k4a)
 find_package(OpenCV)
+list(APPEND CMAKE_PREFIX_PATH "/home/cly/libtorch/share/cmake/Torch/")
+find_package(Torch)
 
 include_directories(${K4A_INCLUDE_DIRS})
 include_directories(${OpenCV_INCLUDE_DIRS})
+INCLUDE_DIRECTORIES(${TORCH_INCLUDE_DIRS})
 
 add_executable(k4a_capture
     mainwindow.ui
@@ -99,16 +103,15 @@ add_executable(k4a_capture
     k4adevice.cpp
     devmanager.cpp
     depthcolorizer.cpp
+    bgmatting.cpp
     main.cpp
 )
-
-add_definitions(${PCL_DEFINITIONS})
 
 target_link_libraries(k4a_capture
     Qt5::Widgets
     k4a::k4a
     ${Open3D_LIBRARIES}
-    ${PCL_LIBRARIES}
-    ${OpenCV_LIBRARIES})
-
+    ${OpenCV_LIBRARIES}
+    ${TORCH_LIBRARIES}
+)
 target_include_directories(k4a_capture PUBLIC ${Open3D_INCLUDE_DIRS})
