@@ -32,6 +32,7 @@ public:
     uint32_t getDeviceId() const;
     const Eigen::Matrix3f &getColorIntrinsicMatrix() const;
     void setSyncMode(k4a_wired_sync_mode_t m);
+    k4a_wired_sync_mode_t getSyncMode();
     void setExposureTime(int exp, k4a_color_control_mode_t mode=K4A_COLOR_CONTROL_MODE_MANUAL);
     void setWhiteBalance(int32_t value,k4a_color_control_mode_t mode=K4A_COLOR_CONTROL_MODE_MANUAL);
     /** 以上为设备SDK操作，以下为其他数据处理 **/

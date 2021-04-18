@@ -1,6 +1,7 @@
 #include "k4adevice.h"
 #include <QMatrix>
 #include <QDir>
+#include <QTime>
 #include <QDateTime>
 #include <QDebug>
 #include <opencv2/core/eigen.hpp>
@@ -28,7 +29,7 @@ k4aDevice::k4aDevice(uint32_t index) :
 
     rotateMat.rotate(90);
     colorExtrinsicMatrix=Eigen::Matrix4d::Identity();
-    o3d_pc = std::shared_ptr<open3d::geometry::PointCloud>(new open3d::geometry::PointCloud()); //即使没打开相机也可能先打开viewer，所以要一开始就初始化
+    o3d_pc = std::shared_ptr<open3d::geometry::PointCloud>(new open3d::geometry::PointCloud()); //切换3d模式时可能没同步上，提前初始化避免读到空指针
 }
 
 k4aDevice::~k4aDevice()
@@ -67,39 +68,42 @@ bool k4aDevice::is_camRunning() const
 
 void k4aDevice::startCamera()
 {
-    device.start_cameras(&config);
-    loadColorExtrinsicMatrix("/home/cly/workspace/k4a_capture/doc/calib/");
-    device.set_color_control(K4A_COLOR_CONTROL_POWERLINE_FREQUENCY,K4A_COLOR_CONTROL_MODE_MANUAL,1);    // 电源50Hz
+    if(!_is_camRunning)
+    {
+        device.start_cameras(&config);
+        loadColorExtrinsicMatrix("/home/cly/workspace/k4a_capture/doc/calib/");
+        device.set_color_control(K4A_COLOR_CONTROL_POWERLINE_FREQUENCY,K4A_COLOR_CONTROL_MODE_MANUAL,1);    // 电源50Hz
 
-    k4a::calibration calibration = device.get_calibration(config.depth_mode, config.color_resolution);
-    transformation = k4a::transformation(calibration);
-    k4a_calibration_intrinsic_parameters_t& intri = calibration.color_camera_calibration.intrinsics.parameters;
-    colorIntrinsicMatrix<<intri.param.fx, 0.0f, intri.param.cx,
-            0.0f, intri.param.fy, intri.param.cy,
-            0.0f, 0.0f, 1.0f;
+        k4a::calibration calibration = device.get_calibration(config.depth_mode, config.color_resolution);
+        transformation = k4a::transformation(calibration);
+        k4a_calibration_intrinsic_parameters_t& intri = calibration.color_camera_calibration.intrinsics.parameters;
+        colorIntrinsicMatrix<<intri.param.fx, 0.0f, intri.param.cx,
+                0.0f, intri.param.fy, intri.param.cy,
+                0.0f, 0.0f, 1.0f;
 
-    width = K4A_COLOR_RESOLUTIONS[config.color_resolution][0];
-    height = K4A_COLOR_RESOLUTIONS[config.color_resolution][1];
-    transformed_depth_image = k4a::image::create(   K4A_IMAGE_FORMAT_DEPTH16,
-                                                    width,
-                                                    height,
-                                                    width * (int)sizeof(uint16_t));
+        width = K4A_COLOR_RESOLUTIONS[config.color_resolution][0];
+        height = K4A_COLOR_RESOLUTIONS[config.color_resolution][1];
+        transformed_depth_image = k4a::image::create(   K4A_IMAGE_FORMAT_DEPTH16,
+                                                        width,
+                                                        height,
+                                                        width * (int)sizeof(uint16_t));
 
-    o3d_color = std::shared_ptr<open3d::geometry::Image>(new open3d::geometry::Image());
-    o3d_color->width_=width;
-    o3d_color->height_=height;
-    o3d_color->num_of_channels_=3;
-    o3d_color->bytes_per_channel_=1; // 8bit图为1， 16bit图为2. 不是指整张图的大小
+        o3d_color = std::shared_ptr<open3d::geometry::Image>(new open3d::geometry::Image());
+        o3d_color->width_=width;
+        o3d_color->height_=height;
+        o3d_color->num_of_channels_=3;
+        o3d_color->bytes_per_channel_=1; // 8bit图为1， 16bit图为2. 不是指整张图的大小
 
-    o3d_depth = std::shared_ptr<open3d::geometry::Image>(new open3d::geometry::Image());
-    o3d_depth->width_=width;
-    o3d_depth->height_=height;
-    o3d_depth->num_of_channels_=1;
-    o3d_depth->bytes_per_channel_=2;
+        o3d_depth = std::shared_ptr<open3d::geometry::Image>(new open3d::geometry::Image());
+        o3d_depth->width_=width;
+        o3d_depth->height_=height;
+        o3d_depth->num_of_channels_=1;
+        o3d_depth->bytes_per_channel_=2;
 
-    colorizer = new depthColorizer(config.depth_mode);
+        colorizer = new depthColorizer(config.depth_mode);
 
-    _is_camRunning=true;
+        _is_camRunning=true;
+    }
 }
 
 void k4aDevice::stopCamera()
@@ -164,6 +168,11 @@ void k4aDevice::setSyncMode(k4a_wired_sync_mode_t m)
         // 设置depth_delay_off_color_usec怎么样？
         config.subordinate_delay_off_master_usec = 160*deviceIndex;
     else config.subordinate_delay_off_master_usec = 0;  // 否则会抛出异常
+}
+
+k4a_wired_sync_mode_t k4aDevice::getSyncMode()
+{
+    return config.wired_sync_mode;
 }
 
 void k4aDevice::loadColorExtrinsicMatrix(QString path)
@@ -263,10 +272,21 @@ void k4aDevice::run()
         colorImage = capture.get_color_image();
         transformation.depth_image_to_color_camera(depthImage, &transformed_depth_image);
 
+        QTime data_time;
+        data_time.start();
+
+        uchar* color_image_data = colorImage.get_buffer();
+        // 前景分割 目前单相机15ms,4相机同时要30ms左右
+        if(enableBgMatting && bgm->is_valid() && !backgroundImg.empty())
+        {
+            cv::Mat color_tmp(height,width,CV_8UC4,color_image_data);
+            cv::cvtColor(color_tmp, color_tmp, cv::COLOR_BGRA2RGB);
+            bgMask = bgm->forward(color_tmp, backgroundImg);
+        }
+
         if(_is_visual)
         {
             /*为显示做处理*/
-            uchar* color_image_data = colorImage.get_buffer();
             uchar* depth_image_data = transformed_depth_image.get_buffer();
             if(visualization_mode==VISUALIZATION_MODE_2D)
             {
@@ -282,9 +302,6 @@ void k4aDevice::run()
 
                 if(enableBgMatting && bgm->is_valid() && !backgroundImg.empty())
                 {
-                    cv::Mat color_tmp(height,width,CV_8UC4,color_image_data);
-                    cv::cvtColor(color_tmp, color_tmp, cv::COLOR_BGRA2RGB);
-                    bgMask = bgm->forward(color_tmp, backgroundImg);
                     QImage QMask_image(bgMask.data,width,height,QImage::Format_Grayscale8);
                     Q_EMIT sig_SendMaskImg(QMask_image.transformed(rotateMat));
                 }
@@ -301,7 +318,7 @@ void k4aDevice::run()
                         open3d::geometry::RGBDImage::CreateFromColorAndDepth(*o3d_color,
                                                                               *o3d_depth,
                                                                               1000,
-                                                                              3.0,
+                                                                              2.5,
                                                                               false);
                 open3d::camera::PinholeCameraIntrinsic o3d_Intrinsic(width,
                                                                      height,
@@ -315,6 +332,7 @@ void k4aDevice::run()
 //                open3d::io::WritePointCloud("test.ply",*o3d_pc);
 //                qDebug()<<"3d mode running...";
             }
-        }
+        }   // if(is_visual)
+        qDebug()<<"设备"+QString::number(deviceIndex)+"数据处理时间"<<data_time.elapsed()<<"ms";
     }
 }

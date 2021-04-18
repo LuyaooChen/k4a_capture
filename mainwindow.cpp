@@ -17,7 +17,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     devs = new devManager();
     devs->setVisualMode(VISUALIZATION_MODE_2D);
-    devs->loadBGMModel("/home/cly/workspace/BackgroundMattingV2/weights/torchscript_mobilenetv2_fp16.pth");
+    devs->loadBGMModel("/home/cly/workspace/k4a_capture/weights/torchscript_mobilenetv2_fp16.pth");
     for(int i=0;i<N_CAM;i++)
     {
         devs->k4aDevices[i]->setObjectName(QString::number(i));   //简单用数字命名设备对象
@@ -276,7 +276,8 @@ void MainWindow::on_visualModeAction_triggered()
     else
     {
         devs->setVisualMode(VISUALIZATION_MODE_2D);
-        pc_viewer->ClearGeometries();
+        for(int i=0;i<N_CAM;i++)
+            devs->pointcloud[i]->Clear();
         pc_viewer->DestroyVisualizerWindow();
         devs->_is_viewerOpened=false;
         qDebug()<<"2d on";
@@ -319,7 +320,6 @@ void MainWindow::on_startAllAction_triggered()
     uint32_t N_devs = k4a::device::get_installed_count();
     if(ui->startAllAction->text()=="Start All")
     {
-        int master_index=-1;
         for(int index=0;index<N_devs;index++)
         {
             if(!devs->k4aDevices[index]->is_opened())
@@ -343,15 +343,18 @@ void MainWindow::on_startAllAction_triggered()
                 camStartButtons[index]->setEnabled(true);
                 for(int i=0;i<3;i++)
                     syncModeButtons[index]->button(i)->setEnabled(false);
-
-                // start camera.
-                if(sync_mode!=K4A_WIRED_SYNC_MODE_MASTER)
-                {
-                    devs->k4aDevices[index]->startCamera();
-                    camStartButtons[index]->setText("Stop");
-                }
-                else master_index=index;
             }
+        }
+        int master_index=-1;
+        // start camera.
+        for(int index=0;index<N_devs;index++)
+        {
+            if(devs->k4aDevices[index]->getSyncMode()!=K4A_WIRED_SYNC_MODE_MASTER)
+            {
+                devs->k4aDevices[index]->startCamera();
+                camStartButtons[index]->setText("Stop");
+            }
+            else master_index=index;
         }
         // MASTER设备最后启动
         if(master_index!=-1)

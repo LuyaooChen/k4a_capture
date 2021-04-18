@@ -69,19 +69,9 @@ Eigen::Matrix4d devManager::colored_icp(std::shared_ptr<open3d::geometry::PointC
 
 void devManager::setVisualMode(visualization_mode_t mode)
 {
-    if(mode==VISUALIZATION_MODE_2D)
+    for(int i=0;i<N_CAM;i++)
     {
-        for(int i=0;i<N_CAM;i++)
-        {
-            k4aDevices[i]->setVisualMode(mode);
-        }
-    }
-    else
-    {
-        for(int i=0;i<N_CAM;i++)
-        {
-            k4aDevices[i]->setVisualMode(mode);
-        }
+        k4aDevices[i]->setVisualMode(mode);
     }
     visualization_mode=mode;
 }
@@ -125,6 +115,7 @@ void devManager::run()
                 if(k4aDevices[i]->isRunning())
                 {
                     is_allFinished=false;
+                    break;
                 }
             }
             // 如果所有相机都完成了,break，开始下一次采集
@@ -135,7 +126,10 @@ void devManager::run()
                 {
                     mutex.lock();
                     for(int i=0;i<N_CAM;i++)
-                        *(pointcloud[i]) = *(k4aDevices[i]->getPointCloud());
+                        if(k4aDevices[i]->is_camRunning())
+                        {
+                            *(pointcloud[i]) = *(k4aDevices[i]->getPointCloud());
+                        }
                     // Colored_ICP 优化配准
                     if(refineRegistration_on)
                     {
@@ -143,8 +137,7 @@ void devManager::run()
                         Eigen::Matrix4d transformation_current;
                         Eigen::Matrix4d transformation_result;
                         std::shared_ptr<open3d::geometry::PointCloud> pc_sum(new open3d::geometry::PointCloud());
-                        int i=0;
-                        for(i=0;i<N_CAM;i++)
+                        for(int i=0;i<N_CAM;i++)
                         {
                             if(k4aDevices[i]->is_camRunning())
                             {

@@ -1,6 +1,7 @@
 *.user
 build/
 .vscode/
+weights/
 # Prerequisites
 *.d
 
