@@ -8,7 +8,7 @@ class BgMatting
 public:
     BgMatting(const std::string& dev="CUDA");
     void load(const std::string& path);
-    cv::Mat forward(const cv::Mat img, const cv::Mat bgr);
+    cv::Mat forward(const cv::Mat img, const at::Tensor &bgrTensor);
     bool is_valid();
 private:
     torch::jit::Module model;

@@ -45,7 +45,7 @@ public:
     void saveImg() const;
     cv::Mat getColorImg();
     void applyBgMatting(BgMatting *bgm);
-    void setBackground(cv::Mat bgImg);
+    void setBackground(cv::Mat bgImg, c10::Device dev=torch::kCUDA);
 
 private:
     void run() override;
@@ -58,7 +58,7 @@ private:
     k4a::image depthImage;
     k4a::image colorImage;
     k4a::image transformed_depth_image;
-    cv::Mat backgroundImg;
+    torch::Tensor backgroundImg;
     cv::Mat bgMask;
     Eigen::Matrix3f colorIntrinsicMatrix;
     Eigen::Matrix4d colorExtrinsicMatrix;

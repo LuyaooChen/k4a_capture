@@ -249,9 +249,10 @@ void k4aDevice::applyBgMatting(BgMatting* bgm)
     this->bgm = bgm;
 }
 
-void k4aDevice::setBackground(cv::Mat bgImg)
+void k4aDevice::setBackground(cv::Mat bgImg, torch::Device dev)
 {
-    backgroundImg=bgImg.clone();
+    backgroundImg=torch::from_blob(bgImg.data,{1,bgImg.rows,bgImg.cols,3},torch::kU8);
+    backgroundImg=backgroundImg.permute({0,3,1,2}).to(dev).to(torch::kFloat16).div(255.0);
 }
 
 void k4aDevice::run()
@@ -277,10 +278,10 @@ void k4aDevice::run()
 
         uchar* color_image_data = colorImage.get_buffer();
         // 前景分割 目前单相机15ms,4相机同时要30ms左右
-        if(enableBgMatting && bgm->is_valid() && !backgroundImg.empty())
+        if(enableBgMatting && bgm->is_valid() && backgroundImg.sizes()[0]!=0)
         {
             cv::Mat color_tmp(height,width,CV_8UC4,color_image_data);
-            cv::cvtColor(color_tmp, color_tmp, cv::COLOR_BGRA2RGB);
+            cv::cvtColor(color_tmp, color_tmp, cv::COLOR_BGRA2BGR);
             bgMask = bgm->forward(color_tmp, backgroundImg);
         }
 
@@ -300,9 +301,9 @@ void k4aDevice::run()
                 QDepth_image = QDepth_image.transformed(rotateMat);
                 Q_EMIT sig_SendDepthImg(QDepth_image);
 
-                if(enableBgMatting && bgm->is_valid() && !backgroundImg.empty())
+                if(enableBgMatting && bgm->is_valid() && backgroundImg.sizes()[0]!=0)
                 {
-                    QImage QMask_image(bgMask.data,width,height,QImage::Format_Grayscale8);
+                    QImage QMask_image(bgMask.data,bgMask.cols,bgMask.rows,QImage::Format_Grayscale8);
                     Q_EMIT sig_SendMaskImg(QMask_image.transformed(rotateMat));
                 }
             }
@@ -333,6 +334,6 @@ void k4aDevice::run()
 //                qDebug()<<"3d mode running...";
             }
         }   // if(is_visual)
-        qDebug()<<"设备"+QString::number(deviceIndex)+"数据处理时间"<<data_time.elapsed()<<"ms";
+//        qDebug()<<"设备"+QString::number(deviceIndex)+"数据处理时间"<<data_time.elapsed()<<"ms";
     }
 }

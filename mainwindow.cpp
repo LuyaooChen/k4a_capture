@@ -17,6 +17,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     devs = new devManager();
     devs->setVisualMode(VISUALIZATION_MODE_2D);
+    qInfo()<<"loading backgroundMatting model...";
     devs->loadBGMModel("/home/cly/workspace/k4a_capture/weights/torchscript_mobilenetv2_fp16.pth");
     for(int i=0;i<N_CAM;i++)
     {
