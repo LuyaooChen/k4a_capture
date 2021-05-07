@@ -42,7 +42,7 @@ public:
     void enableVisualization(bool flag);
     std::shared_ptr<open3d::geometry::PointCloud> getPointCloud() const;
     void setVisualMode(visualization_mode_t mode);
-    void saveImg() const;
+    void saveImg(QString time);
     cv::Mat getColorImg();
     void applyBgMatting(BgMatting *bgm);
     void setBackground(cv::Mat bgImg, c10::Device dev=torch::kCUDA);
@@ -51,6 +51,7 @@ private:
     void run() override;
 
     uint32_t deviceIndex;
+    std::string serialNum;
     k4a::device device;
     k4a_device_configuration_t config;
     k4a::transformation transformation;

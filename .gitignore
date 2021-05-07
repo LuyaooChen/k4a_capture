@@ -1,4 +1,6 @@
 *.user
+imgs/
+calib_images/
 build/
 .vscode/
 weights/

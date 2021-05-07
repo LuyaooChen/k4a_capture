@@ -124,7 +124,8 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->refineRegistrationAction, &QAction::triggered, this, &MainWindow::on_refineRegistrationAction_triggered);
     connect(ui->saveImgsAction, &QAction::triggered, this, &MainWindow::on_saveImgsAction_triggered);
     connect(ui->startAllAction, &QAction::triggered, this, &MainWindow::on_startAllAction_triggered);
-    connect(ui->setBGaction, &QAction::triggered, this, &MainWindow::on_setBGaction_triggered);
+    connect(ui->setBGAction, &QAction::triggered, this, &MainWindow::on_setBGAction_triggered);
+    connect(ui->savePCAction, &QAction::triggered, this,&MainWindow::on_savePCAction_triggered);
 
     {
     /* 最大值最小值默认值enable等直接在ui界面中设置了，这里就省的写了。
@@ -293,7 +294,8 @@ void MainWindow::slotPointCloudReady(bool flag)
         if(!devs->_is_viewerOpened)
         {
             for(int i=0;i<N_CAM;i++)
-                pc_viewer->AddGeometry(devs->pointcloud[i]);
+//                pc_viewer->AddGeometry(devs->pointcloud[i]);
+                pc_viewer->AddGeometry(devs->pointcloud_sum);
             devs->_is_viewerOpened=true;
         }
         else
@@ -393,7 +395,12 @@ void MainWindow::slotFPSUpdate(float fps)
     ui->statusBar->showMessage(QString("FPS:")+QString::number(double(fps),'f',1));
 }
 
-void MainWindow::on_setBGaction_triggered()
+void MainWindow::on_setBGAction_triggered()
 {
     devs->setBG_on=true;
+}
+
+void MainWindow::on_savePCAction_triggered()
+{
+    devs->savePC_on=true;
 }

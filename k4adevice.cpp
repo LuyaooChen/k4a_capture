@@ -2,7 +2,7 @@
 #include <QMatrix>
 #include <QDir>
 #include <QTime>
-#include <QDateTime>
+//#include <QDateTime>
 #include <QDebug>
 #include <opencv2/core/eigen.hpp>
 #include <open3d/Open3D.h>
@@ -41,6 +41,7 @@ bool k4aDevice::open()
 {
     try{
         device = k4a::device::open(deviceIndex);
+        serialNum=device.get_serialnum();
     }
     catch(std::exception& e){
         return false;
@@ -80,6 +81,9 @@ void k4aDevice::startCamera()
         colorIntrinsicMatrix<<intri.param.fx, 0.0f, intri.param.cx,
                 0.0f, intri.param.fy, intri.param.cy,
                 0.0f, 0.0f, 1.0f;
+        std::cout<<deviceIndex<<std::endl;
+        std::cout<<intri.param.fx<<" "<<intri.param.cx<<" "<<intri.param.fy<<" "<<intri.param.cy<<std::endl;
+        std::cout<<intri.param.k1<<" "<<intri.param.k2<<" "<<intri.param.p1<<" "<<intri.param.p2<<" "<<intri.param.k3<<" "<<intri.param.k4<<" "<<intri.param.k5<<" "<<intri.param.k6<<std::endl;
 
         width = K4A_COLOR_RESOLUTIONS[config.color_resolution][0];
         height = K4A_COLOR_RESOLUTIONS[config.color_resolution][1];
@@ -177,7 +181,7 @@ k4a_wired_sync_mode_t k4aDevice::getSyncMode()
 
 void k4aDevice::loadColorExtrinsicMatrix(QString path)
 {
-    path = path + QString(device.get_serialnum().c_str()) + ".yaml";
+    path = path + QString(serialNum.c_str()) + ".yaml";
     cv::FileStorage freader;
     if(freader.open(path.toStdString(), cv::FileStorage::READ))
     {
@@ -214,24 +218,24 @@ void k4aDevice::setVisualMode(visualization_mode_t mode)
     visualization_mode=mode;
 }
 
-void k4aDevice::saveImg() const
+void k4aDevice::saveImg(QString time)
 {
     if(!colorImage.is_valid()) return;
-    QString path =QString("imgs/")+device.get_serialnum().c_str()+"/";
+    QString path =QString("imgs/")+serialNum.c_str()+"/";
     QDir qdir;    //当前目录
     if(!qdir.exists(path))
     {
         qdir.mkpath(path);
         qDebug()<<"path doesn't exist. mkpath:"+path;
     }
-    QString time=QDateTime::currentDateTime().toString("yyyy_MM_dd-hh:mm:ss");
-    const uchar* color_image_data = colorImage.get_buffer();
-//    cv::Mat tmp(height,width,CV_8UC4,color_image_data);
-//    cv::cvtColor(tmp,tmp,cv::COLOR_BGRA2BGR);
-//    cv::imwrite((path+time+".jpg").toStdString(),tmp);    //crashed! maybe because to libjpeg
-    QImage QColor_image(color_image_data,width,height,QImage::Format_RGBA8888);
-    QColor_image=QColor_image.rgbSwapped();
-    QColor_image.save(path+time+".png","PNG",9);
+//    QString time=QDateTime::currentDateTime().toString("yyyy_MM_dd-hh:mm:ss");
+    uchar* color_image_data = colorImage.get_buffer();
+    cv::Mat tmp(height,width,CV_8UC4,color_image_data);
+    cv::cvtColor(tmp,tmp,cv::COLOR_BGRA2BGR);
+    cv::imwrite((path+time+".png").toStdString(),tmp);    //crashed! maybe because to libjpeg
+//    QImage QColor_image(color_image_data,width,height,QImage::Format_RGBA8888);
+//    QColor_image=QColor_image.rgbSwapped();
+//    QColor_image.save(path+time+".png","PNG",9);
     qDebug()<<"save color img to "+qdir.absolutePath()+"/"+path+time+".png";
 }
 
@@ -329,7 +333,6 @@ void k4aDevice::run()
                                                                      colorIntrinsicMatrix(1,2));
                 o3d_pc = open3d::geometry::PointCloud::CreateFromRGBDImage(*o3d_rgbd,o3d_Intrinsic);
                 o3d_pc->Transform(colorExtrinsicMatrix);
-//                o3d_pc = open3d::geometry::PointCloud::CreateFromDepthImage(o3d_depth,o3d_Intrinsic);
 //                open3d::io::WritePointCloud("test.ply",*o3d_pc);
 //                qDebug()<<"3d mode running...";
             }

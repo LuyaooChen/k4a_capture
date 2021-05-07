@@ -1,5 +1,6 @@
 #include "devmanager.h"
 #include <QDebug>
+#include <QDateTime>
 #include <QTime>
 #include <open3d/Open3D.h>
 #include <open3d/pipelines/registration/ColoredICP.h>
@@ -9,6 +10,7 @@ devManager::devManager() : _is_running(false),
     refineRegistration_on(false),
     saveAllImgs_on(false),
     setBG_on(false),
+    savePC_on(false),
     bgm("cuda")
 {
     for(int i=0;i<N_CAM;i++)
@@ -17,6 +19,7 @@ devManager::devManager() : _is_running(false),
         k4aDevices[i]->applyBgMatting(&bgm);
         pointcloud[i] = std::shared_ptr<open3d::geometry::PointCloud>(new open3d::geometry::PointCloud());
     }
+    pointcloud_sum=std::shared_ptr<open3d::geometry::PointCloud>(new open3d::geometry::PointCloud());
 }
 
 devManager::~devManager()
@@ -125,11 +128,14 @@ void devManager::run()
                 if(visualization_mode==VISUALIZATION_MODE_3D)
                 {
                     mutex.lock();
+                    pointcloud_sum->Clear();
                     for(int i=0;i<N_CAM;i++)
                         if(k4aDevices[i]->is_camRunning())
                         {
                             *(pointcloud[i]) = *(k4aDevices[i]->getPointCloud());
+                            *(pointcloud_sum) += *(pointcloud[i]);
                         }
+                    *pointcloud_sum=*(pointcloud_sum->VoxelDownSample(0.01));
                     // Colored_ICP 优化配准
                     if(refineRegistration_on)
                     {
@@ -158,13 +164,21 @@ void devManager::run()
 
                     mutex.unlock();
                     Q_EMIT sig_SendPointCloudReady(true);
+
+                    if(savePC_on)
+                    {
+                        savePC_on=false;
+                        open3d::io::WritePointCloud("pointcloud.ply",*pointcloud_sum);
+                        qInfo()<<"save current pointcloud.";
+                    }
                 }
 
                 if(saveAllImgs_on)
                 {
+                    QString time=QDateTime::currentDateTime().toString("yyyy_MM_dd-hh:mm:ss");
                     saveAllImgs_on=false;
                     for(int i=0;i<N_CAM;i++)
-                        k4aDevices[i]->saveImg();
+                        k4aDevices[i]->saveImg(time);
                 }
 
                 if(setBG_on)

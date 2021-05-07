@@ -966,7 +966,8 @@
    <addaction name="visualModeAction"/>
    <addaction name="refineRegistrationAction"/>
    <addaction name="saveImgsAction"/>
-   <addaction name="setBGaction"/>
+   <addaction name="savePCAction"/>
+   <addaction name="setBGAction"/>
    <addaction name="startAllAction"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
@@ -999,12 +1000,20 @@
     <string>start all cameras connected</string>
    </property>
   </action>
-  <action name="setBGaction">
+  <action name="setBGAction">
    <property name="text">
     <string>Set BG</string>
    </property>
    <property name="toolTip">
     <string>set current color image as background image for ALL.</string>
+   </property>
+  </action>
+  <action name="savePCAction">
+   <property name="text">
+    <string>save PC</string>
+   </property>
+   <property name="toolTip">
+    <string>save current poiontcloud.</string>
    </property>
   </action>
  </widget>
