@@ -30,6 +30,7 @@ public:
     bool is_opened() const;
     bool is_camRunning() const;
     uint32_t getDeviceId() const;
+    std::string getDeviceSerialNum() const;
     const Eigen::Matrix3f &getColorIntrinsicMatrix() const;
     void setSyncMode(k4a_wired_sync_mode_t m);
     k4a_wired_sync_mode_t getSyncMode();
@@ -77,6 +78,7 @@ private:
     bool _is_camRunning;
     bool _is_visual;
     bool enableBgMatting;
+    bool enableDepth;
     visualization_mode_t visualization_mode;
 
     static constexpr int K4A_COLOR_RESOLUTIONS[7][2]= {{0,0}, {1280,720},{1920,1080},{2560,1440},{2048,1536},{3840,2160},{4096,3072}};

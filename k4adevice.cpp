@@ -15,17 +15,19 @@ k4aDevice::k4aDevice(uint32_t index) :
     _is_camRunning(false),
     _is_visual(true),
     enableBgMatting(true),
+    enableDepth(true),
     visualization_mode(VISUALIZATION_MODE_2D)
 {
     // 如果需要gui来配置config，以下需要重写以另外配置
     config = K4A_DEVICE_CONFIG_INIT_DISABLE_ALL;
     config.camera_fps = K4A_FRAMES_PER_SECOND_30;
-    config.depth_mode = K4A_DEPTH_MODE_NFOV_UNBINNED;
+    if(enableDepth) config.depth_mode = K4A_DEPTH_MODE_NFOV_UNBINNED;
+    else config.depth_mode = K4A_DEPTH_MODE_OFF;
     config.color_format = K4A_IMAGE_FORMAT_COLOR_BGRA32;
     config.color_resolution = K4A_COLOR_RESOLUTION_720P;
 //    config.wired_sync_mode = K4A_WIRED_SYNC_MODE_STANDALONE;
 //    config.subordinate_delay_off_master_usec = 160;
-    config.synchronized_images_only = true;
+    if(enableDepth) config.synchronized_images_only = true;
 
     rotateMat.rotate(90);
     colorExtrinsicMatrix=Eigen::Matrix4d::Identity();
@@ -82,6 +84,7 @@ void k4aDevice::startCamera()
                 0.0f, intri.param.fy, intri.param.cy,
                 0.0f, 0.0f, 1.0f;
         std::cout<<deviceIndex<<std::endl;
+
         std::cout<<intri.param.fx<<" "<<intri.param.cx<<" "<<intri.param.fy<<" "<<intri.param.cy<<std::endl;
         std::cout<<intri.param.k1<<" "<<intri.param.k2<<" "<<intri.param.p1<<" "<<intri.param.p2<<" "<<intri.param.k3<<" "<<intri.param.k4<<" "<<intri.param.k5<<" "<<intri.param.k6<<std::endl;
 
@@ -104,7 +107,7 @@ void k4aDevice::startCamera()
         o3d_depth->num_of_channels_=1;
         o3d_depth->bytes_per_channel_=2;
 
-        colorizer = new depthColorizer(config.depth_mode);
+        if(enableDepth) colorizer = new depthColorizer(config.depth_mode);
 
         _is_camRunning=true;
     }
@@ -116,14 +119,16 @@ void k4aDevice::stopCamera()
 //    msleep(35); // 保证capture结束了
     device.stop_cameras();
     transformation.destroy();
-    delete colorizer;
+    if(enableDepth) delete colorizer;
 }
 
 uint32_t k4aDevice::getDeviceId() const
 {
     return deviceIndex;
 }
-
+std::string k4aDevice::getDeviceSerialNum() const{
+    return serialNum;
+}
 const Eigen::Matrix3f &k4aDevice::getColorIntrinsicMatrix() const
 {
     return colorIntrinsicMatrix;
@@ -273,9 +278,12 @@ void k4aDevice::run()
             return;
         }
 
-        depthImage = capture.get_depth_image();
+        if(enableDepth)
+        {
+            depthImage = capture.get_depth_image();
+            transformation.depth_image_to_color_camera(depthImage, &transformed_depth_image);
+        }
         colorImage = capture.get_color_image();
-        transformation.depth_image_to_color_camera(depthImage, &transformed_depth_image);
 
         QTime data_time;
         data_time.start();
@@ -292,7 +300,8 @@ void k4aDevice::run()
         if(_is_visual)
         {
             /*为显示做处理*/
-            uchar* depth_image_data = transformed_depth_image.get_buffer();
+            uchar* depth_image_data;
+            if(enableDepth) depth_image_data = transformed_depth_image.get_buffer();
             if(visualization_mode==VISUALIZATION_MODE_2D)
             {
                 QImage QColor_image(color_image_data,width,height,QImage::Format_RGBA8888);
@@ -300,10 +309,13 @@ void k4aDevice::run()
                 Q_EMIT sig_SendColorImg(QColor_image);
 
                 // 这里需要rgba8888，alpha没用，只是QRgb占4个字节，对齐处理起来方便。
-                QImage QDepth_image(width,height,QImage::Format_RGBA8888);
-                colorizer->colorize(depth_image_data,QDepth_image);
-                QDepth_image = QDepth_image.transformed(rotateMat);
-                Q_EMIT sig_SendDepthImg(QDepth_image);
+                if(enableDepth)
+                {
+                    QImage QDepth_image(width,height,QImage::Format_RGBA8888);
+                    colorizer->colorize(depth_image_data,QDepth_image);
+                    QDepth_image = QDepth_image.transformed(rotateMat);
+                    Q_EMIT sig_SendDepthImg(QDepth_image);
+                }
 
                 if(enableBgMatting && bgm->is_valid() && backgroundImg.sizes()[0]!=0)
                 {

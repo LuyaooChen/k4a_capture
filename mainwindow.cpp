@@ -270,6 +270,7 @@ void MainWindow::on_visualModeAction_triggered()
     if(devs->getVisualMode()==VISUALIZATION_MODE_2D)
     {
         pc_viewer = std::shared_ptr<open3d::visualization::Visualizer>(new open3d::visualization::Visualizer());
+
         pc_viewer->CreateVisualizerWindow("Cloud",1280,720);
         devs->setVisualMode(VISUALIZATION_MODE_3D);
         qDebug()<<"3d on";
@@ -293,9 +294,10 @@ void MainWindow::slotPointCloudReady(bool flag)
         devs->mutex.lock();
         if(!devs->_is_viewerOpened)
         {
-            for(int i=0;i<N_CAM;i++)
+            //for(int i=0;i<N_CAM;i++)
 //                pc_viewer->AddGeometry(devs->pointcloud[i]);
-                pc_viewer->AddGeometry(devs->pointcloud_sum);
+            pc_viewer->AddGeometry(devs->pointcloud_sum);
+
             devs->_is_viewerOpened=true;
         }
         else

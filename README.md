@@ -1,7 +1,10 @@
 # k4a_capture
 多个Azure Kinect DK的同步采集、显示、标定等。
+![window](http://github.com/LuyaooChen/blob/main/window.png)
 
 ## 更新记录  
+#### v0.5.1  
+优化  
 #### v0.5
 增加backgroundMattingV2背景分割，使用libtorch(TorchScript)部署  
 由于libtorch与QT的宏有冲突，添加了QT_NO_KEYWORDS选项，并修改了相关内容。  

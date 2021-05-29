@@ -128,7 +128,9 @@ void devManager::run()
                 if(visualization_mode==VISUALIZATION_MODE_3D)
                 {
                     mutex.lock();
+
                     pointcloud_sum->Clear();
+
                     for(int i=0;i<N_CAM;i++)
                         if(k4aDevices[i]->is_camRunning())
                         {
@@ -136,6 +138,7 @@ void devManager::run()
                             *(pointcloud_sum) += *(pointcloud[i]);
                         }
                     *pointcloud_sum=*(pointcloud_sum->VoxelDownSample(0.01));
+
                     // Colored_ICP 优化配准
                     if(refineRegistration_on)
                     {
@@ -169,6 +172,13 @@ void devManager::run()
                     {
                         savePC_on=false;
                         open3d::io::WritePointCloud("pointcloud.ply",*pointcloud_sum);
+
+                        for(int i=0;i<N_CAM;i++)
+                            if(k4aDevices[i]->is_camRunning())
+                            {
+                                std::string savepath = "pointcloud_"+(k4aDevices[i]->getDeviceSerialNum())+".xyzrgb";
+                                open3d::io::WritePointCloud(savepath,pointcloud[i]->Transform((k4aDevices[i]->getColorExtrinsicMatrix().inverse())));
+                            }
                         qInfo()<<"save current pointcloud.";
                     }
                 }
