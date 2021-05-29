@@ -1,6 +1,6 @@
 # k4a_capture
 多个Azure Kinect DK的同步采集、显示、标定等。
-![window](http://github.com/LuyaooChen/blob/main/window.png)
+![window](http://github.com/LuyaooChen/k4a_capture/blob/main/window.png)
 
 ## 更新记录  
 #### v0.5.1  
