@@ -1,6 +1,21 @@
 # k4a_capture
 多个Azure Kinect DK的同步采集、显示、标定等。
-![window](http://github.com/LuyaooChen/blob/main/window.png)
+![window](https://raw.githubusercontent.com/LuyaooChen/k4a_capture/main/window.png)
+
+## 依赖
+1. [Azure Kinect Sensor SDK](https://github.com/microsoft/Azure-Kinect-Sensor-SDK)  1.4.1
+2. Qt5.9
+3. OpenCV 3.2
+4. [Open3D](https://github.com/intel-isl/Open3D) 0.12
+5. libtorch 1.8.1
+
+## 使用说明
+4个窗口分别对应设备号从0-3的相机  
+背景抠图功能基于[BackgroundMattingV2](https://github.com/PeterL1n/BackgroundMattingV2),需要去原仓库先下载模型权重文件，只能基于固定背景。点击`Set BG`按钮会保存当前图片为背景并开始分割  
+点击`2D\3D`按钮可以显示点云，本功能会调用Open3D的窗口（目前存在打开时可能无内容的bug，可多尝试几次）  
+`Refine Registration`会调用Open3D的colored_ICP以尝试对齐点云，但在我的应用中因相机重叠视野过小时而失败，所以暂时没有进行进一步测试  
+保存图片、保存点云、调整曝光值和白平衡等功能  
+注意：当使用线缆同步时应最后启动Master相机
 
 ## 更新记录  
 #### v0.5.1  
