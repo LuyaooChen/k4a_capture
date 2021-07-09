@@ -237,11 +237,18 @@ void k4aDevice::saveImg(QString time)
     uchar* color_image_data = colorImage.get_buffer();
     cv::Mat tmp(height,width,CV_8UC4,color_image_data);
     cv::cvtColor(tmp,tmp,cv::COLOR_BGRA2BGR);
-    cv::imwrite((path+time+".png").toStdString(),tmp);    //crashed! maybe because to libjpeg
+    cv::imwrite((path+time+"_color.png").toStdString(),tmp);    //crashed! maybe because to libjpeg
 //    QImage QColor_image(color_image_data,width,height,QImage::Format_RGBA8888);
 //    QColor_image=QColor_image.rgbSwapped();
 //    QColor_image.save(path+time+".png","PNG",9);
-    qDebug()<<"save color img to "+qdir.absolutePath()+"/"+path+time+".png";
+    qDebug()<<"save color img to "+qdir.absolutePath()+"/"+path+time+"_color.png";
+
+    {   //save depth
+        uchar* depth_image_data = depthImage.get_buffer();
+        cv::Mat tmp2(height,width,CV_8UC1,depth_image_data);
+        cv::imwrite((path+time+"_depth.png").toStdString(),tmp2);
+        qDebug()<<"save depth img to "+qdir.absolutePath()+"/"+path+time+"_depth.png";
+    }
 }
 
 cv::Mat k4aDevice::getColorImg()
@@ -262,6 +269,9 @@ void k4aDevice::setBackground(cv::Mat bgImg, torch::Device dev)
 {
     backgroundImg=torch::from_blob(bgImg.data,{1,bgImg.rows,bgImg.cols,3},torch::kU8);
     backgroundImg=backgroundImg.permute({0,3,1,2}).to(dev).to(torch::kFloat16).div(255.0);
+    QString path =QString("imgs/")+serialNum.c_str()+"/";
+    cv::imwrite((path+"background.png").toStdString(),bgImg);
+    qDebug()<<"save background image.";
 }
 
 void k4aDevice::run()

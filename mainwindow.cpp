@@ -126,6 +126,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->startAllAction, &QAction::triggered, this, &MainWindow::on_startAllAction_triggered);
     connect(ui->setBGAction, &QAction::triggered, this, &MainWindow::on_setBGAction_triggered);
     connect(ui->savePCAction, &QAction::triggered, this,&MainWindow::on_savePCAction_triggered);
+    connect(ui->recordAction, &QAction::triggered, this,&MainWindow::on_recordAction_triggered);
 
     {
     /* 最大值最小值默认值enable等直接在ui界面中设置了，这里就省的写了。
@@ -405,4 +406,19 @@ void MainWindow::on_setBGAction_triggered()
 void MainWindow::on_savePCAction_triggered()
 {
     devs->savePC_on=true;
+}
+
+void MainWindow::on_recordAction_triggered()
+{
+    //建议关掉背景分割以保持高帧率
+    if(devs->record_on)
+    {
+        devs->record_on=false;
+        ui->recordAction->setText("Record: OFF");
+    }
+    else
+    {
+        devs->record_on=true;
+        ui->recordAction->setText("Record: ON");
+    }
 }
