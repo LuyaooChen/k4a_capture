@@ -62,6 +62,7 @@ private Q_SLOT:
     void on_startAllAction_triggered();
     void on_setBGAction_triggered();
     void on_savePCAction_triggered();
+    void on_recordAction_triggered();
 };
 
 #endif // MAINWINDOW_H

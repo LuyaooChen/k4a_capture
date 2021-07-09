@@ -11,6 +11,7 @@ devManager::devManager() : _is_running(false),
     saveAllImgs_on(false),
     setBG_on(false),
     savePC_on(false),
+    record_on(false),
     bgm("cuda")
 {
     for(int i=0;i<N_CAM;i++)
@@ -183,7 +184,7 @@ void devManager::run()
                     }
                 }
 
-                if(saveAllImgs_on)
+                if(saveAllImgs_on || record_on)
                 {
                     QString time=QDateTime::currentDateTime().toString("yyyy_MM_dd-hh:mm:ss");
                     saveAllImgs_on=false;
