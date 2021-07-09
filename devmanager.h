@@ -26,6 +26,7 @@ public:
     bool saveAllImgs_on;
     bool setBG_on;
     bool savePC_on;
+    bool record_on;
     std::shared_ptr<open3d::geometry::PointCloud> pointcloud[N_CAM];
     std::shared_ptr<open3d::geometry::PointCloud> pointcloud_sum;
 

@@ -969,6 +969,7 @@
    <addaction name="savePCAction"/>
    <addaction name="setBGAction"/>
    <addaction name="startAllAction"/>
+   <addaction name="recordAction"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <action name="visualModeAction">
@@ -1010,10 +1011,18 @@
   </action>
   <action name="savePCAction">
    <property name="text">
-    <string>save PC</string>
+    <string>Save PC</string>
    </property>
    <property name="toolTip">
     <string>save current poiontcloud.</string>
+   </property>
+  </action>
+  <action name="recordAction">
+   <property name="text">
+    <string>Record: OFF</string>
+   </property>
+   <property name="toolTip">
+    <string>Record switch</string>
    </property>
   </action>
  </widget>

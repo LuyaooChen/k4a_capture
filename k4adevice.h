@@ -82,6 +82,7 @@ private:
     visualization_mode_t visualization_mode;
 
     static constexpr int K4A_COLOR_RESOLUTIONS[7][2]= {{0,0}, {1280,720},{1920,1080},{2560,1440},{2048,1536},{3840,2160},{4096,3072}};
+    static constexpr int K4A_DEPTH_RESOLUTIONS[6][2]= {{0,0}, {320,288},{640,576},{512,512},{1024,1024},{1024,1024}};
 
 Q_SIGNALS:
     void sig_SendColorImg(QImage);
