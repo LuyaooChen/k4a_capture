@@ -1,28 +1,14 @@
 %YAML:1.0
 ---
-camreaMatrix: !!opencv-matrix
-   rows: 3
-   cols: 3
-   dt: d
-   data: [ 1.9482349251370761e+03, 0., 2.0283182129978579e+03, 0.,
-       1.9493336541321351e+03, 1.5518479391886415e+03, 0., 0., 1. ]
+fx: 612.513
+cx: 638.342
+fy: 612.383
+cy: 366.08
 distCoeffs: !!opencv-matrix
-   rows: 5
+   rows: 8
    cols: 1
    dt: d
-   data: [ 8.8143826233892747e-02, -1.7880419461464601e-02,
-       -1.5193258371237983e-04, -3.7505988392584557e-03,
-       -5.2066184993236356e-02 ]
-rvec: !!opencv-matrix
-   rows: 3
-   cols: 1
-   dt: d
-   data: [ 0., 0., 0. ]
-tvec: !!opencv-matrix
-   rows: 3
-   cols: 1
-   dt: d
-   data: [ 0., 0., 0. ]
+   data: [ 0.637702, -2.66585, 0.000484103, -0.000335055, 1.4429, 0.516881, -2.49934, 1.37876 ]
 transformMat: !!opencv-matrix
    rows: 4
    cols: 4
