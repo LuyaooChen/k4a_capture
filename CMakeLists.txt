@@ -104,6 +104,7 @@ add_executable(k4a_capture
     devmanager.cpp
     depthcolorizer.cpp
     bgmatting.cpp
+    depthundistorthelper.cpp
     main.cpp
 )
 
