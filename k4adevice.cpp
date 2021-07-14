@@ -239,17 +239,14 @@ void k4aDevice::saveImg(QString time)
     cv::Mat tmp(height,width,CV_8UC4,color_image_data);
     cv::cvtColor(tmp,tmp,cv::COLOR_BGRA2BGR);
     cv::imwrite((path+time+"_color.png").toStdString(),tmp);    //crashed! maybe because to libjpeg
-//    QImage QColor_image(color_image_data,width,height,QImage::Format_RGBA8888);
-//    QColor_image=QColor_image.rgbSwapped();
-//    QColor_image.save(path+time+".png","PNG",9);
-    qDebug()<<"save color img to "+qdir.absolutePath()+"/"+path+time+"_color.png";
+    // qDebug()<<"save color img to "+qdir.absolutePath()+"/"+path+time+"_color.png";
 
     {   //save depth
         uchar* depth_image_data = depthImage.get_buffer();
-        int h_t=K4A_DEPTH_RESOLUTIONS[config.depth_mode][0], w_t=K4A_DEPTH_RESOLUTIONS[config.depth_mode][1];
-        cv::Mat tmp2(h_t,w_t,CV_8UC1,depth_image_data);
+        int h_t=K4A_DEPTH_RESOLUTIONS[config.depth_mode][1], w_t=K4A_DEPTH_RESOLUTIONS[config.depth_mode][0];
+        cv::Mat tmp2(h_t,w_t,CV_16UC1,depth_image_data);
         cv::imwrite((path+time+"_depth.png").toStdString(),tmp2);
-        qDebug()<<"save depth img to "+qdir.absolutePath()+"/"+path+time+"_depth.png";
+        // qDebug()<<"save depth img to "+qdir.absolutePath()+"/"+path+time+"_depth.png";
     }
 }
 
