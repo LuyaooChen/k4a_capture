@@ -1,16 +1,17 @@
 #include "depthundistorthelper.h"
+#include <cmath>
 #define INVALID INT32_MIN
 
 depthUndistortHelper::depthUndistortHelper(const k4a::calibration *calibration, const k4a_calibration_type_t camera, interpolation_t interpolation_type)
     :interpolation_type(interpolation_type)
 {
-    pinhole = create_pinhole_from_xy_range(&calibration, camera);
+    pinhole = create_pinhole_from_xy_range(calibration, camera);
     k4a_image_create(K4A_IMAGE_FORMAT_CUSTOM,
                      pinhole.width,
                      pinhole.height,
                      pinhole.width * (int)sizeof(coordinate_t),
                      &lut);
-    create_undistortion_lut(&calibration, camera, &pinhole, lut, interpolation_type);
+    create_undistortion_lut(calibration, camera, &pinhole, lut, interpolation_type);
 }
 
 depthUndistortHelper::~depthUndistortHelper()
@@ -22,16 +23,15 @@ void depthUndistortHelper::apply(const k4a::image &depth, k4a::image &undistorte
 {
     if(!undistorted.is_valid())
     {
-        k4a_image_create(K4A_IMAGE_FORMAT_DEPTH16,
-                         pinhole.width,
-                         pinhole.height,
-                         pinhole.width * (int)sizeof(uint16_t),
-                         &undistorted);
+        undistorted = k4a::image::create(   K4A_IMAGE_FORMAT_DEPTH16,
+                                            pinhole.width,
+                                            pinhole.height,
+                                            pinhole.width * (int)sizeof(uint16_t));
     }
-    remap(depth,lut,undistorted,interpolation_type);
+    remap(depth.handle(),lut,undistorted.handle(),interpolation_type);
 }
 
-depthUndistortHelper::compute_xy_range(const k4a_calibration_t *calibration,
+void depthUndistortHelper::compute_xy_range(const k4a_calibration_t *calibration,
                                        const k4a_calibration_type_t camera,
                                        const int width,
                                        const int height,

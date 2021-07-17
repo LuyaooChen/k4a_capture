@@ -11,6 +11,8 @@
 
 #include <turbojpeg.h>
 
+#include "../../depthundistorthelper.h"
+
 static int K4A_COLOR_RESOLUTIONS[7][2]= {{0,0}, {1280,720},{1920,1080},{2560,1440},{2048,1536},{3840,2160},{4096,3072}};
 
 typedef struct
@@ -122,6 +124,10 @@ int main(int argc, char **argv)
 
     std::vector<k4a_calibration_t> calibrations(file_count);
     std::vector<k4a_transformation_t> transformations(file_count);
+    std::vector<k4a_image_t> undistorteds(file_count,NULL);
+    std::vector<k4a_image_t> luts(file_count,NULL);
+    std::vector<pinhole_t> pinholes(file_count);
+
     // Open each recording file and validate they were recorded in master/subordinate mode.
     for (size_t i = 0; i < file_count; i++)
     {
@@ -184,6 +190,21 @@ int main(int argc, char **argv)
         //获取各文件的calibration和transform
         k4a_playback_get_calibration(files[i].handle, &calibrations[i]);
         transformations[i] = k4a_transformation_create(&calibrations[i]);
+
+        //为畸变矫正做准备 prepare for undistortion
+        // k4a_image_t undistorted = NULL;
+        // k4a_image_t lut=NULL;
+        // pinhole_t pinhole;
+
+        pinholes[i] = depthUndistortHelper::create_pinhole_from_xy_range(&calibrations[i],K4A_CALIBRATION_TYPE_COLOR);
+        k4a_image_create(K4A_IMAGE_FORMAT_CUSTOM,
+                        pinholes[i].width,
+                        pinholes[i].height,
+                        pinholes[i].width * (int)sizeof(coordinate_t),
+                        &luts[i]);
+        depthUndistortHelper::create_undistortion_lut(&calibrations[i], K4A_CALIBRATION_TYPE_COLOR, &pinholes[i], luts[i], INTERPOLATION_BILINEAR_DEPTH);
+        k4a_image_create(K4A_IMAGE_FORMAT_DEPTH16,pinholes[i].width,pinholes[i].height,pinholes[i].width*sizeof(uint16_t), &undistorteds[i]);
+        //prepare for undistortion end
     }
 
     tjhandle m_decoder = tjInitDecompress();
@@ -198,7 +219,6 @@ int main(int argc, char **argv)
         uint64_t pre_timestamp = 0;
 
         int frame_cnt=0;
-        
 
         // Print the first 25 captures in order of timestamp across all the recordings.
         // for (int frame = 0; frame < 10; frame++)
@@ -243,9 +263,13 @@ int main(int argc, char **argv)
                         k4a_image_create(K4A_IMAGE_FORMAT_DEPTH16,width,height,width*sizeof(uint16_t),&images[2]);
                         k4a_transformation_depth_image_to_color_camera(transformations[i],images[1],images[2]);
 
-                        uchar* depth_image_data = k4a_image_get_buffer(images[2]);
+
+                        depthUndistortHelper::remap(images[2],luts[i],undistorteds[i],INTERPOLATION_BILINEAR_DEPTH);
+                        uchar* depth_image_data = k4a_image_get_buffer(undistorteds[i]);
+                        // uchar* depth_image_data = k4a_image_get_buffer(iamges[2]);
                         cv::Mat tmp2(height,width,CV_16UC1,depth_image_data);
 
+                        //@todo: undistort color image
                         uchar* color_image_data = k4a_image_get_buffer(images[0]);
                         cv::Mat tmp(height,width,CV_8UC4);
                         tjDecompress2(m_decoder,color_image_data,k4a_image_get_size(images[0]),tmp.data,width,0,height,TJPF_BGRA,TJFLAG_FASTDCT|TJFLAG_FASTUPSAMPLE);
@@ -253,8 +277,8 @@ int main(int argc, char **argv)
                         char filename[32];
                         sprintf(filename,"data/%d/depth_%04d.png",i,frame_cnt);
                         cv::imwrite(filename,tmp2);
-                        sprintf(filename,"data/%d/color_%04d.png",i,frame_cnt);
-                        cv::imwrite(filename,tmp);
+                        // sprintf(filename,"data/%d/color_%04d.png",i,frame_cnt);
+                        // cv::imwrite(filename,tmp);
 
                         for (int i = 0; i < 3; i++)
                         {
